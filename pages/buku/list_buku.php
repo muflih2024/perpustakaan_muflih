@@ -36,147 +36,136 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Buku - Perpustakaan Muflih</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Menggunakan Bootstrap lokal -->
+    <link href="../../assets/bootstrap.css/css/theme.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        body {
-            display: flex;
-            min-height: 100vh;
-            flex-direction: row;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: #fff;
-            min-height: 100vh;
-            padding: 15px;
-        }
-        .sidebar a {
-            color: #adb5bd;
-            text-decoration: none;
-            display: block;
-            padding: 10px 15px;
-        }
-        .sidebar a:hover, .sidebar a.active {
-            color: #fff;
-            background-color: #495057;
-        }
-        .content {
-            flex: 1;
-            padding: 20px;
-        }
-        .table-responsive {
-            margin-top: 20px;
-        }
-    </style>
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 <body>
-    <nav class="sidebar">
-        <h4 class="text-center mb-4">Perpus Muflih</h4>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="../../dashboard.php"><i class="bi bi-house-door-fill me-2"></i> Dashboard</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="list_buku.php"><i class="bi bi-book-fill me-2"></i> Daftar Buku</a>
-            </li>
-            <?php if ($role === 'admin'): ?>
-            <li class="nav-item">
-                <a class="nav-link" href="tambah_buku.php"><i class="bi bi-plus-circle-fill me-2"></i> Tambah Buku</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="../user/list_user.php"><i class="bi bi-people-fill me-2"></i> Manajemen User</a>
-            </li>
-             <li class="nav-item">
-                <a class="nav-link" href="../user/tambah_user.php"><i class="bi bi-person-plus-fill me-2"></i> Tambah User</a>
-            </li>
-            <?php endif; ?>
-             <li class="nav-item mt-auto">
-                <a class="nav-link" href="../../logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
-            </li>
-        </ul>
-    </nav>
-
-    <div class="content">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                 <h2>Daftar Buku</h2>
-                 <?php if ($role === 'admin'): ?>
-                    <a href="tambah_buku.php" class="btn btn-success"><i class="bi bi-plus-lg me-2"></i>Tambah Buku Baru</a>
-                 <?php endif; ?>
-            </div>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; min-height: 100vh;">
+            <a href="../../dashboard.php" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+                <i class="bi bi-book-half me-2" style="font-size: 1.5rem;"></i>
+                <span class="fs-4">Perpus Muflih</span>
+            </a>
             <hr>
-
-            <?php if ($success_message): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo $success_message; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="../../dashboard.php"><i class="bi bi-house-door-fill me-2"></i> Dashboard</a>
+                </li>
+                <li>
+                    <a class="nav-link active text-white" href="list_buku.php"><i class="bi bi-book-fill me-2"></i> Daftar Buku</a>
+                </li>
+                <?php if ($role === 'admin'): ?>
+                <li>
+                    <a class="nav-link text-white" href="tambah_buku.php"><i class="bi bi-plus-circle-fill me-2"></i> Tambah Buku</a>
+                </li>
+                <li>
+                    <a class="nav-link text-white" href="../user/list_user.php"><i class="bi bi-people-fill me-2"></i> Manajemen User</a>
+                </li>
+                 <li>
+                    <a class="nav-link text-white" href="../user/tambah_user.php"><i class="bi bi-person-plus-fill me-2"></i> Tambah User</a>
+                </li>
+                <?php endif; ?>
+            </ul>
+            <hr>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <strong><?php echo sanitize($_SESSION['username']); ?></strong>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+                    <li><a class="dropdown-item" href="../../logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                </ul>
             </div>
-            <?php endif; ?>
-            <?php if ($error_message): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo $error_message; ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            <?php endif; ?>
+        </nav>
 
-            <form method="get" action="list_buku.php" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan judul..." value="<?php echo sanitize($search); ?>">
-                    <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i> Cari</button>
-                    <?php if (!empty($search)): ?>
-                        <a href="list_buku.php" class="btn btn-outline-danger"><i class="bi bi-x-lg"></i> Reset</a>
-                    <?php endif; ?>
+        <!-- Content Area -->
+        <div class="content flex-grow-1 p-3">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                     <h2 class="animate__animated animate__fadeInLeft">Daftar Buku</h2>
+                     <?php if ($role === 'admin'): ?>
+                        <a href="tambah_buku.php" class="btn btn-success animate__animated animate__fadeInRight"><i class="bi bi-plus-lg me-2"></i>Tambah Buku Baru</a>
+                     <?php endif; ?>
                 </div>
-            </form>
+                <hr>
 
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Judul</th>
-                            <th>Pengarang</th>
-                            <th>Penerbit</th>
-                            <th>Tahun Terbit</th>
-                            <th>Genre</th>
-                            <th>Stok</th>
-                            <?php if ($role === 'admin'): ?>
-                                <th>Aksi</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (count($books) > 0): ?>
-                            <?php foreach ($books as $book): ?>
+                <?php if ($success_message): ?>
+                <div class="alert alert-success alert-dismissible fade show animate__animated animate__fadeInDown" role="alert">
+                    <?php echo $success_message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
+                <?php if ($error_message): ?>
+                <div class="alert alert-danger alert-dismissible fade show animate__animated animate__fadeInDown" role="alert">
+                    <?php echo $error_message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php endif; ?>
+
+                <form method="get" action="list_buku.php" class="mb-4 animate__animated animate__fadeIn">
+                    <div class="input-group shadow-sm">
+                        <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan judul..." value="<?php echo sanitize($search); ?>">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i> Cari</button>
+                        <?php if (!empty($search)): ?>
+                            <a href="list_buku.php" class="btn btn-outline-secondary"><i class="bi bi-x-lg me-1"></i> Reset</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+
+                <div class="table-responsive animate__animated animate__fadeInUp">
+                    <table class="table table-striped table-bordered table-hover shadow-sm">
+                        <thead class="table-dark">
                             <tr>
-                                <td><?php echo sanitize($book['id']); ?></td>
-                                <td><?php echo sanitize($book['judul']); ?></td>
-                                <td><?php echo sanitize($book['pengarang']); ?></td>
-                                <td><?php echo sanitize($book['penerbit']); ?></td>
-                                <td><?php echo sanitize($book['tahun_terbit']); ?></td>
-                                <td><?php echo sanitize($book['genre']); ?></td>
-                                <td><?php echo sanitize($book['stok']); ?></td>
+                                <th>ID</th>
+                                <th>Judul</th>
+                                <th>Pengarang</th>
+                                <th>Penerbit</th>
+                                <th>Tahun</th>
+                                <th>Genre</th>
+                                <th>Stok</th>
                                 <?php if ($role === 'admin'): ?>
-                                    <td>
-                                        <a href="edit_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-warning me-1"><i class="bi bi-pencil-square"></i> Edit</a>
-                                        <a href="hapus_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Anda yakin ingin menghapus buku ini?');"><i class="bi bi-trash-fill"></i> Hapus</a>
-                                    </td>
+                                    <th class="text-center">Aksi</th>
                                 <?php endif; ?>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="<?php echo ($role === 'admin' ? 8 : 7); ?>" class="text-center">Tidak ada data buku ditemukan.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php if (count($books) > 0): ?>
+                                <?php foreach ($books as $index => $book): ?>
+                                <tr class="animate__animated animate__fadeIn" style="animation-delay: <?php echo $index * 0.05; ?>s;">
+                                    <td><?php echo sanitize($book['id']); ?></td>
+                                    <td><?php echo sanitize($book['judul']); ?></td>
+                                    <td><?php echo sanitize($book['pengarang']); ?></td>
+                                    <td><?php echo sanitize($book['penerbit']); ?></td>
+                                    <td><?php echo sanitize($book['tahun_terbit']); ?></td>
+                                    <td><?php echo sanitize($book['genre']); ?></td>
+                                    <td><?php echo sanitize($book['stok']); ?></td>
+                                    <?php if ($role === 'admin'): ?>
+                                        <td class="text-center">
+                                            <a href="edit_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-warning me-1" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="hapus_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-danger" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus buku ini: <?php echo addslashes(sanitize($book['judul'])); ?>?');"><i class="bi bi-trash-fill"></i></a>
+                                        </td>
+                                    <?php endif; ?>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="<?php echo ($role === 'admin' ? 8 : 7); ?>" class="text-center">Tidak ada data buku ditemukan<?php echo !empty($search) ? ' untuk pencarian \'' . sanitize($search) . '\'' : ''; ?>.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Menggunakan Bootstrap JS lokal -->
+    <script src="../../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

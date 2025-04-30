@@ -291,6 +291,19 @@ mysqli_close($koneksi);
                     </ul>
                 </nav>
                 <?php endif; ?>
+                
+                <!-- Scroll Boundary Footer -->
+                <div class="mt-5 mb-3 pt-4 animate__animated animate__fadeInUp">
+                    <hr class="border-2 border-primary opacity-25">
+                    <div class="d-flex justify-content-between align-items-center px-2">
+                        <div class="text-muted small">
+                            <i class="bi bi-book me-1"></i> Perpustakaan Muflih
+                        </div>
+                        <div class="text-muted small">
+                            &copy; <?php echo date('Y'); ?> | Developed with inspiration
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

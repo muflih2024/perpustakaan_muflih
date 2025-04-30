@@ -1,7 +1,15 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login();
+check_login(); // Memastikan user sudah login
 
+// Hanya pengguna biasa (role 'user') yang dapat mengakses halaman ini
+if ($_SESSION['role'] !== 'user') {
+    header("Location: ../../dashboard.php?error=Anda tidak memiliki akses ke halaman ini");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$username = $_SESSION['username'];
 $role = $_SESSION['role'];
 
 // Pagination variables
@@ -12,14 +20,14 @@ $offset = ($current_page - 1) * $limit;
 
 $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 
-// --- Count total books for pagination ---
-$sql_count = "SELECT COUNT(*) as total FROM buku";
+// Count total available books (with stock > 0)
+$sql_count = "SELECT COUNT(*) as total FROM buku WHERE stok > 0";
 $count_params = [];
 $count_types = '';
 if (!empty($search)) {
-    $sql_count .= " WHERE judul LIKE ?";
+    $sql_count .= " AND judul LIKE ?";
     $search_param_count = "%{$search}%";
-    $count_params[] = &$search_param_count; // Pass by reference
+    $count_params[] = &$search_param_count;
     $count_types .= 's';
 }
 
@@ -38,34 +46,30 @@ if ($stmt_count = mysqli_prepare($koneksi, $sql_count)) {
 }
 
 $total_pages = ceil($total_books / $limit);
-// Ensure current page is not greater than total pages
-$current_page = min($current_page, $total_pages);
-// Recalculate offset if current_page was adjusted
+$current_page = min($current_page, max(1, $total_pages));
 $offset = ($current_page - 1) * $limit;
-$offset = max(0, $offset); // Ensure offset is not negative
+$offset = max(0, $offset);
 
-// --- Fetch books for the current page ---
-$sql = "SELECT * FROM buku";
+// Fetch available books for the current page
+$sql = "SELECT * FROM buku WHERE stok > 0";
 $params = [];
 $types = '';
 if (!empty($search)) {
-    $sql .= " WHERE judul LIKE ?";
+    $sql .= " AND judul LIKE ?";
     $search_param = "%{$search}%";
-    $params[] = &$search_param; // Pass by reference
+    $params[] = &$search_param;
     $types .= 's';
 }
 $sql .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
-$params[] = &$limit; // Pass by reference
-$params[] = &$offset; // Pass by reference
-$types .= 'ii'; // Add types for limit and offset
+$params[] = &$limit;
+$params[] = &$offset;
+$types .= 'ii';
 
 $books = [];
 if ($stmt = mysqli_prepare($koneksi, $sql)) {
-    // Use call_user_func_array for dynamic binding
     if (!empty($types)) {
         mysqli_stmt_bind_param($stmt, $types, ...$params);
     }
-
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     $books = mysqli_fetch_all($result, MYSQLI_ASSOC);
@@ -74,18 +78,31 @@ if ($stmt = mysqli_prepare($koneksi, $sql)) {
     die("Error fetching books: " . mysqli_error($koneksi));
 }
 
-mysqli_close($koneksi);
+// Check if user already has active books
+$sql_active_loans = "SELECT COUNT(*) as total_loans FROM peminjaman WHERE user_id = ? AND status = 'dipinjam'";
+$active_loans = 0;
 
+if ($stmt_loans = mysqli_prepare($koneksi, $sql_active_loans)) {
+    mysqli_stmt_bind_param($stmt_loans, "i", $user_id);
+    mysqli_stmt_execute($stmt_loans);
+    $result_loans = mysqli_stmt_get_result($stmt_loans);
+    $row_loans = mysqli_fetch_assoc($result_loans);
+    $active_loans = $row_loans['total_loans'];
+    mysqli_stmt_close($stmt_loans);
+}
+
+// Handle success or error messages
 $success_message = isset($_GET['success']) ? sanitize($_GET['success']) : '';
 $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
 
+mysqli_close($koneksi);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Buku - Perpustakaan Muflih</title>
+    <title>Pinjam Buku - Perpustakaan Muflih</title>
     <!-- Menggunakan Bootstrap lokal -->
     <link href="../../assets/bootstrap.css/css/theme.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -104,28 +121,31 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
             <hr>
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="../../dashboard.php"><i class="bi bi-house-door-fill me-2"></i> Dashboard</a>
+                    <a class="nav-link text-white" href="../../dashboard.php">
+                        <i class="bi bi-house-door-fill me-2"></i> Dashboard
+                    </a>
                 </li>
                 <li>
-                    <a class="nav-link active text-white" href="list_buku.php"><i class="bi bi-book-fill me-2"></i> Daftar Buku</a>
-                </li>
-                <?php if ($role === 'admin'): ?>
-                <li>
-                    <a class="nav-link text-white" href="tambah_buku.php"><i class="bi bi-plus-circle-fill me-2"></i> Tambah Buku</a>
+                    <a class="nav-link text-white" href="../buku/list_buku.php">
+                        <i class="bi bi-book-fill me-2"></i> Daftar Buku
+                    </a>
                 </li>
                 <li>
-                    <a class="nav-link text-white" href="../user/list_user.php"><i class="bi bi-people-fill me-2"></i> Manajemen User</a>
+                    <a class="nav-link active text-white" href="pinjam_buku.php">
+                        <i class="bi bi-journal-arrow-down me-2"></i> Pinjam Buku
+                    </a>
                 </li>
-                 <li>
-                    <a class="nav-link text-white" href="../user/tambah_user.php"><i class="bi bi-person-plus-fill me-2"></i> Tambah User</a>
+                <li>
+                    <a class="nav-link text-white" href="daftar_pinjaman.php">
+                        <i class="bi bi-journal-bookmark-fill me-2"></i> Buku Dipinjam
+                    </a>
                 </li>
-                <?php endif; ?>
             </ul>
             <hr>
             <div class="dropdown">
                 <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle me-2"></i>
-                    <strong><?php echo sanitize($_SESSION['username']); ?></strong>
+                    <strong><?php echo sanitize($username); ?></strong>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
                     <li><a class="dropdown-item" href="../../logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
@@ -137,10 +157,12 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
         <div class="content flex-grow-1 p-3">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                     <h2 class="animate__animated animate__fadeInLeft">Daftar Buku</h2>
-                     <?php if ($role === 'admin'): ?>
-                        <a href="tambah_buku.php" class="btn btn-success animate__animated animate__fadeInRight"><i class="bi bi-plus-lg me-2"></i>Tambah Buku Baru</a>
-                     <?php endif; ?>
+                    <h2 class="animate__animated animate__fadeInLeft">
+                        <i class="bi bi-journal-arrow-down text-primary me-2"></i> Pinjam Buku
+                    </h2>
+                    <div class="badge bg-info text-dark p-2 animate__animated animate__fadeInRight">
+                        <i class="bi bi-info-circle me-1"></i> Buku Dipinjam: <span class="fw-bold"><?php echo $active_loans; ?></span>
+                    </div>
                 </div>
                 <hr>
 
@@ -150,6 +172,7 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
                 <?php endif; ?>
+
                 <?php if ($error_message): ?>
                 <div class="alert alert-danger alert-dismissible fade show animate__animated animate__fadeInDown" role="alert">
                     <?php echo $error_message; ?>
@@ -157,54 +180,70 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                 </div>
                 <?php endif; ?>
 
-                <form method="get" action="list_buku.php" class="mb-4 animate__animated animate__fadeIn">
+                <div class="card shadow-sm mb-4 animate__animated animate__fadeIn">
+                    <div class="card-body">
+                        <p><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> Perhatian:</p>
+                        <ul>
+                            <li>Setiap peminjaman memiliki durasi 7 hari</li>
+                            <li>Anda tidak dapat meminjam lebih dari 3 buku dalam waktu bersamaan</li>
+                            <li>Pastikan untuk mengembalikan buku tepat waktu</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <form method="get" action="pinjam_buku.php" class="mb-4 animate__animated animate__fadeIn">
                     <div class="input-group shadow-sm">
                         <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan judul..." value="<?php echo sanitize($search); ?>">
                         <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i> Cari</button>
                         <?php if (!empty($search)): ?>
-                            <a href="list_buku.php" class="btn btn-outline-secondary"><i class="bi bi-x-lg me-1"></i> Reset</a>
+                            <a href="pinjam_buku.php" class="btn btn-outline-secondary"><i class="bi bi-x-lg me-1"></i> Reset</a>
                         <?php endif; ?>
                     </div>
                 </form>
 
                 <div class="table-responsive animate__animated animate__fadeInUp">
                     <table class="table table-striped table-bordered table-hover shadow-sm">
-                        <thead class="table-dark">
+                        <thead class="table-primary">
                             <tr>
-                                <th>ID</th>
                                 <th>Judul</th>
                                 <th>Pengarang</th>
-                                <th>Penerbit</th>
-                                <th>Tahun</th>
                                 <th>Genre</th>
                                 <th>Stok</th>
-                                <?php if ($role === 'admin'): ?>
-                                    <th class="text-center">Aksi</th>
-                                <?php endif; ?>
+                                <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php if (count($books) > 0): ?>
                                 <?php foreach ($books as $index => $book): ?>
-                                <tr class="animate__animated animate__fadeIn" style="animation-delay: <?php echo $index * 0.05; ?>s;">
-                                    <td><?php echo sanitize($book['id']); ?></td>
+                                <tr class="animate__animated animate__fadeIn" style="animation-delay: <?php echo $index * 0.05; ?>s">
                                     <td><?php echo sanitize($book['judul']); ?></td>
                                     <td><?php echo sanitize($book['pengarang']); ?></td>
-                                    <td><?php echo sanitize($book['penerbit']); ?></td>
-                                    <td><?php echo sanitize($book['tahun_terbit']); ?></td>
                                     <td><?php echo sanitize($book['genre']); ?></td>
-                                    <td><?php echo sanitize($book['stok']); ?></td>
-                                    <?php if ($role === 'admin'): ?>
-                                        <td class="text-center">
-                                            <a href="edit_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-warning me-1" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="hapus_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-danger" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus buku ini: <?php echo addslashes(sanitize($book['judul'])); ?>?');"><i class="bi bi-trash-fill"></i></a>
-                                        </td>
-                                    <?php endif; ?>
+                                    <td>
+                                        <?php if ($book['stok'] > 2): ?>
+                                            <span class="badge bg-success"><?php echo sanitize($book['stok']); ?></span>
+                                        <?php elseif ($book['stok'] > 0): ?>
+                                            <span class="badge bg-warning text-dark"><?php echo sanitize($book['stok']); ?></span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger">Habis</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if ($active_loans >= 3): ?>
+                                            <button class="btn btn-sm btn-secondary" disabled>
+                                                <i class="bi bi-exclamation-triangle me-1"></i> Batas Pinjam
+                                            </button>
+                                        <?php else: ?>
+                                            <a href="proses_pinjam.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-primary" onclick="return confirm('Apakah Anda yakin ingin meminjam buku: <?php echo addslashes(sanitize($book['judul'])); ?>?');">
+                                                <i class="bi bi-journal-arrow-down me-1"></i> Pinjam
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="<?php echo ($role === 'admin' ? 8 : 7); ?>" class="text-center">Tidak ada data buku ditemukan<?php echo !empty($search) ? ' untuk pencarian \'' . sanitize($search) . '\'' : ''; ?>.</td>
+                                    <td colspan="5" class="text-center">Tidak ada buku tersedia saat ini<?php echo !empty($search) ? ' untuk pencarian \'' . sanitize($search) . '\'' : ''; ?>.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -217,7 +256,7 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     <ul class="pagination shadow-sm">
                         <?php
                         // Base URL for pagination links
-                        $base_url = "list_buku.php?";
+                        $base_url = "pinjam_buku.php?";
                         if (!empty($search)) {
                             $base_url .= "search=" . urlencode($search) . "&";
                         }
@@ -272,14 +311,10 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     </ul>
                 </nav>
                 <?php endif; ?>
-                <!-- End Pagination Links -->
-
             </div>
         </div>
     </div>
 
-    <!-- Menggunakan Bootstrap JS lokal -->
     <script src="../../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

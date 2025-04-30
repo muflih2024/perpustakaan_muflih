@@ -15,6 +15,61 @@ if (isset($_GET['success'])) {
     $success_message = sanitize($_GET['success']);
 }
 
+// Fetch books for user dashboard if user role
+$books = [];
+if ($role === 'user') {
+    // Pagination variables
+    $limit = 10; // Books per page
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $page = max(1, $page);
+    $offset = ($page - 1) * $limit;
+
+    $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
+
+    // Count total books for pagination
+    $sql_count = "SELECT COUNT(*) as total FROM buku";
+    if (!empty($search)) {
+        $sql_count .= " WHERE judul LIKE ?";
+    }
+
+    $total_books = 0;
+    if ($stmt_count = mysqli_prepare($koneksi, $sql_count)) {
+        if (!empty($search)) {
+            $search_param = "%{$search}%";
+            mysqli_stmt_bind_param($stmt_count, "s", $search_param);
+        }
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        if ($row_count = mysqli_fetch_assoc($result_count)) {
+            $total_books = $row_count['total'];
+        }
+        mysqli_stmt_close($stmt_count);
+    }
+
+    $total_pages = ceil($total_books / $limit);
+    $page = min($page, max(1, $total_pages));
+    $offset = ($page - 1) * $limit;
+
+    // Fetch books for the current page
+    $sql = "SELECT * FROM buku";
+    if (!empty($search)) {
+        $sql .= " WHERE judul LIKE ?";
+    }
+    $sql .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
+
+    if ($stmt = mysqli_prepare($koneksi, $sql)) {
+        if (!empty($search)) {
+            $search_param = "%{$search}%";
+            mysqli_stmt_bind_param($stmt, "sii", $search_param, $limit, $offset);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $limit, $offset);
+        }
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $books = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -77,6 +132,13 @@ if (isset($_GET['success'])) {
                  <li class="nav-item">
                     <a class="nav-link" href="pages/user/tambah_user.php"><i class="bi bi-person-plus-fill me-2"></i> Tambah User</a>
                 </li>
+                <?php else: ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/peminjaman/pinjam_buku.php"><i class="bi bi-journal-arrow-down me-2"></i> Pinjam Buku</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pages/peminjaman/daftar_pinjaman.php"><i class="bi bi-journal-bookmark-fill me-2"></i> Buku Dipinjam</a>
+                </li>
                 <?php endif; ?>
                  <li class="nav-item mt-auto">
                     <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
@@ -137,7 +199,7 @@ if (isset($_GET['success'])) {
                     </div>
                 <?php else: ?>
                      <div class="row mt-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="card text-white bg-info mb-3">
                                 <div class="card-header">Buku</div>
                                 <div class="card-body">
@@ -147,9 +209,28 @@ if (isset($_GET['success'])) {
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-primary mb-3">
+                                <div class="card-header">Peminjaman</div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Pinjam Buku</h5>
+                                    <p class="card-text">Pinjam buku dari koleksi perpustakaan.</p>
+                                    <a href="pages/peminjaman/pinjam_buku.php" class="btn btn-light">Pinjam Buku</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-success mb-3">
+                                <div class="card-header">Buku Dipinjam</div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Buku Saya</h5>
+                                    <p class="card-text">Lihat dan kelola buku yang sedang Anda pinjam.</p>
+                                    <a href="pages/peminjaman/daftar_pinjaman.php" class="btn btn-light">Lihat Pinjaman</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 <?php endif; ?>
-
             </div>
         </div>
     </div>
@@ -157,4 +238,3 @@ if (isset($_GET['success'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

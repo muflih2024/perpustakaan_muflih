@@ -27,3 +27,16 @@ CREATE TABLE buku (
 INSERT INTO users (username, password, role) VALUES
 ('admin', 'admin123', 'admin'),
 ('user1', 'user123', 'user');
+
+
+-- Tabel peminjaman
+CREATE TABLE IF NOT EXISTS peminjaman (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    buku_id INT NOT NULL,
+    tanggal_pinjam DATE NOT NULL,
+    tanggal_kembali DATE NOT NULL,
+    status ENUM('dipinjam', 'dikembalikan') NOT NULL DEFAULT 'dipinjam',
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (buku_id) REFERENCES buku(id)
+);

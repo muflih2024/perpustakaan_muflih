@@ -112,13 +112,21 @@ if (isset($_GET['error'])) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(to bottom, #87CEEB, #4682B4);
             overflow: hidden;
             z-index: -1;
+            transition: background 4s ease;
+        }
+
+        .morning {
+            background: linear-gradient(to bottom, #FFC1A6, #FFF3D9, #87CEEB);
         }
 
         .day {
             background: linear-gradient(to bottom, #87CEEB, #4682B4);
+        }
+
+        .evening {
+            background: linear-gradient(to bottom, #FF7F50, #FFD700, #4682B4);
         }
 
         .night {
@@ -128,28 +136,50 @@ if (isset($_GET['error'])) {
         /* Sun and moon */
         .sun {
             position: absolute;
-            top: 10%;
-            left: 10%;
             width: 100px;
             height: 100px;
-            background: radial-gradient(circle, #FFD700, #FFA500);
             border-radius: 50%;
-            box-shadow: 0 0 50px rgba(255, 223, 0, 0.8);
             z-index: 1;
-            transition: all 2s ease-in-out;
+            transition: all 4s ease, box-shadow 4s ease, background 4s ease, transform 4s ease;
+        }
+        
+        .morning .sun {
+            top: 5%;
+            left: 10%;
+            background: radial-gradient(circle, #FFE4B5, #FF8C00);
+            box-shadow: 0 0 40px rgba(255, 140, 0, 0.7);
+            transform: scale(0.9);
+        }
+        
+        .day .sun {
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%) scale(1);
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            box-shadow: 0 0 50px rgba(255, 223, 0, 0.8);
+        }
+        
+        .evening .sun {
+            top: 15%;
+            left: 80%;
+            background: radial-gradient(circle, #FF4500, #FF8C00);
+            box-shadow: 0 0 60px rgba(255, 69, 0, 0.9);
+            transform: scale(1.1);
         }
 
         .moon {
             position: absolute;
             top: 10%;
-            left: 10%;
+            left: 50%;
             width: 80px;
             height: 80px;
             background: radial-gradient(circle, #FFF, #BBB);
             border-radius: 50%;
             box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
             z-index: 1;
-            transition: all 2s ease-in-out;
+            transition: all 4s ease, opacity 4s ease;
+            opacity: 0;
+            transform: translateX(-50%);
         }
 
         /* Stars */
@@ -161,11 +191,25 @@ if (isset($_GET['error'])) {
             border-radius: 50%;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
             animation: twinkle 2s infinite;
+            transition: opacity 3s ease;
+            opacity: 0; /* Initially invisible */
+            z-index: 0;
+        }
+        
+        /* Only show stars at night with a nice fade-in effect */
+        .night .star {
+            opacity: 0; /* Start with opacity 0 even in night mode */
+            animation: twinkle 3s infinite, fadeInStar 3s forwards; /* Add fade in animation */
+        }
+        
+        @keyframes fadeInStar {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
 
         @keyframes twinkle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 0.8; box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+            50% { opacity: 0.4; box-shadow: 0 0 5px rgba(255, 255, 255, 0.4); }
         }
 
         /* Clouds */
@@ -176,6 +220,13 @@ if (isset($_GET['error'])) {
             box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.7);
             opacity: 0.8;
             animation: moveCloud 60s linear infinite;
+            transition: background 3s ease, box-shadow 3s ease, opacity 3s ease;
+        }
+
+        .night .cloud {
+            background: rgba(200, 200, 220, 0.4);
+            box-shadow: 0 0 15px 8px rgba(200, 200, 255, 0.3);
+            opacity: 0.5;
         }
 
         .cloud.c1 { width: 150px; height: 50px; top: 10%; left: -100px; animation-duration: 50s; }
@@ -302,28 +353,74 @@ if (isset($_GET['error'])) {
             height: 3px;
             transform: scaleY(0.1);
         }
+
+        /* Welcome text styling for different time phases */
+        .morning .welcome-text h1 {
+            color: #8B4513; /* Brown color for morning text */
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.6);
+        }
+        
+        .morning .welcome-text p {
+            color: #5D4037; /* Darker brown for morning sub-text */
+        }
+        
+        .day .welcome-text h1 {
+            color: #FFFFFF; /* White for day text */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .day .welcome-text p {
+            color: #F0F0F0; /* Light white for day sub-text */
+        }
+        
+        .evening .welcome-text h1 {
+            color: #FFF3E0; /* Light orange for evening text */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .evening .welcome-text p {
+            color: #FFE0B2; /* Lighter orange for evening sub-text */
+        }
+        
+        .night .welcome-text h1 {
+            color: #E0F7FA; /* Light blue for night text */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+        }
+        
+        .night .welcome-text p {
+            color: #B2EBF2; /* Lighter blue for night sub-text */
+        }
     </style>
 </head>
 <body>
     <div class="background-layer">
         <div class="sun" id="sun"></div>
-        <div class="moon" id="moon" style="display: none;"></div>
+        <div class="moon" id="moon"></div>
         <div class="cloud c1"></div>
         <div class="cloud c2"></div>
         <div class="cloud c3"></div>
         <div class="cloud c4"></div>
         <div class="cloud c5"></div>
-        <div class="star" style="top: 20%; left: 30%; display: none;"></div>
-        <div class="star" style="top: 40%; left: 50%; display: none;"></div>
-        <div class="star" style="top: 60%; left: 70%; display: none;"></div>
+        <div class="star" style="top: 15%; left: 25%;"></div>
+        <div class="star" style="top: 20%; left: 40%;"></div>
+        <div class="star" style="top: 12%; left: 60%;"></div>
+        <div class="star" style="top: 25%; left: 75%;"></div>
+        <div class="star" style="top: 35%; left: 20%;"></div>
+        <div class="star" style="top: 40%; left: 50%;"></div>
+        <div class="star" style="top: 45%; left: 80%;"></div>
+        <div class="star" style="top: 55%; left: 30%;"></div>
+        <div class="star" style="top: 60%; left: 70%;"></div>
+        <div class="star" style="top: 70%; left: 15%;"></div>
+        <div class="star" style="top: 75%; left: 45%;"></div>
+        <div class="star" style="top: 80%; left: 65%;"></div>
     </div>
 
     <div class="container-fluid vh-100 p-0 d-flex align-items-center justify-content-center">
         <div class="row h-100 g-0 w-100">
             <div class="col-md-6 text-white d-flex flex-column justify-content-center p-4 position-relative overflow-hidden">
-                <div class="position-relative" style="z-index: 5">
-                    <h1>Welcome to Perpustakaan Muflih</h1>
-                    <p>Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.</p>
+                <div class="position-relative welcome-text" style="z-index: 5">
+                    <h1 class="display-4 fw-bold mb-3" id="welcomeHeading">Welcome to Perpustakaan Muflih</h1>
+                    <p class="lead mb-0" id="welcomeMessage">Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.</p>
                 </div>
 
                 <div class="book-character" id="bookCharacter" style="z-index: 10;">
@@ -405,6 +502,141 @@ if (isset($_GET['error'])) {
     <script src="assets/bootstrap.js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const backgroundLayer = document.querySelector('.background-layer');
+            const sun = document.getElementById('sun');
+            const moon = document.getElementById('moon');
+            const stars = document.querySelectorAll('.star');
+            const clouds = document.querySelectorAll('.cloud');
+            
+            // Welcome text elements
+            const welcomeHeading = document.getElementById('welcomeHeading');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            
+            // Time cycle phases
+            const timePhases = ['morning', 'day', 'evening', 'night'];
+            let currentPhase = 0;
+            
+            // Set initial state
+            updateTimePhase(timePhases[currentPhase]);
+            
+            // Time phase update function
+            function updateTimePhase(phase) {
+                // Remove all possible phase classes first
+                backgroundLayer.classList.remove('morning', 'day', 'evening', 'night');
+                
+                // Add the current phase class
+                backgroundLayer.classList.add(phase);
+                
+                // Update welcome text based on time phase
+                updateWelcomeText(phase);
+                
+                // Update elements based on current phase
+                switch(phase) {
+                    case 'morning':
+                        // Morning sunrise
+                        sun.style.display = 'block';
+                        moon.style.opacity = '0';
+                        
+                        // Position and style sun for morning
+                        sun.style.opacity = '1';
+                        updateCloudAppearance('morning');
+                        hideStars();
+                        break;
+                        
+                    case 'day':
+                        // Full daylight
+                        sun.style.display = 'block';
+                        moon.style.opacity = '0';
+                        
+                        // Position and style sun for day
+                        sun.style.opacity = '1';
+                        updateCloudAppearance('day');
+                        hideStars();
+                        break;
+                        
+                    case 'evening':
+                        // Sunset
+                        sun.style.display = 'block';
+                        moon.style.opacity = '0';
+                        
+                        // Position and style sun for evening
+                        sun.style.opacity = '1';
+                        updateCloudAppearance('evening');
+                        hideStars();
+                        break;
+                        
+                    case 'night':
+                        // Night time
+                        sun.style.opacity = '0';
+                        moon.style.opacity = '1';
+                        moon.style.display = 'block';
+                        
+                        // Show stars at night with delay
+                        setTimeout(showStars, 800);
+                        updateCloudAppearance('night');
+                        break;
+                }
+            }
+            
+            // Update welcome text based on time phase
+            function updateWelcomeText(phase) {
+                switch(phase) {
+                    case 'morning':
+                        welcomeHeading.textContent = "Selamat Pagi! Welcome to Perpustakaan Muflih";
+                        welcomeMessage.textContent = "Mulai hari Anda dengan membaca buku yang menginspirasi. Mari kelola perpustakaan dengan efisien.";
+                        break;
+                    case 'day':
+                        welcomeHeading.textContent = "Selamat Siang! Welcome to Perpustakaan Muflih";
+                        welcomeMessage.textContent = "Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.";
+                        break;
+                    case 'evening':
+                        welcomeHeading.textContent = "Selamat Sore! Welcome to Perpustakaan Muflih";
+                        welcomeMessage.textContent = "Nikmati sore Anda dengan membaca buku favorit. Sistem perpustakaan yang selalu siap melayani.";
+                        break;
+                    case 'night':
+                        welcomeHeading.textContent = "Selamat Malam! Welcome to Perpustakaan Muflih";
+                        welcomeMessage.textContent = "Perpustakaan tetap ada untuk Anda di malam hari. Mari kelola dan pinjam buku dengan mudah.";
+                        break;
+                }
+            }
+            
+            // Helper functions
+            function showStars() {
+                stars.forEach((star, index) => {
+                    // Add random delays for a more natural twinkling effect
+                    const randomDelay = 100 + Math.random() * 1000 + index * 50;
+                    setTimeout(() => {
+                        const initialOpacity = 0.5 + Math.random() * 0.5;
+                        star.style.opacity = initialOpacity.toString();
+                    }, randomDelay);
+                });
+            }
+            
+            function hideStars() {
+                stars.forEach(star => {
+                    star.style.opacity = '0';
+                });
+            }
+            
+            function updateCloudAppearance(phase) {
+                clouds.forEach(cloud => {
+                    cloud.classList.remove('morning-cloud', 'day-cloud', 'evening-cloud', 'night-cloud');
+                    if (phase !== 'day') {
+                        cloud.classList.add(`${phase}-cloud`);
+                    }
+                });
+            }
+            
+            // Cycle through time phases
+            function cycleTimePhase() {
+                currentPhase = (currentPhase + 1) % timePhases.length;
+                updateTimePhase(timePhases[currentPhase]);
+            }
+            
+            // Change time phase every 6 seconds (reduced from 12 seconds)
+            setInterval(cycleTimePhase, 6000);
+            
+            // Book character eye movement logic
             const leftPupil = document.getElementById('leftPupil');
             const rightPupil = document.getElementById('rightPupil');
             const bookCharacter = document.getElementById('bookCharacter');
@@ -508,33 +740,6 @@ if (isset($_GET['error'])) {
                 eyeIcon.innerHTML = `<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.94 5.94 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>`; // Eye slash icon SVG path
                 eyeIcon.setAttribute('viewBox', '0 0 16 16');
             }
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const backgroundLayer = document.querySelector('.background-layer');
-            const sun = document.getElementById('sun');
-            const moon = document.getElementById('moon');
-            const stars = document.querySelectorAll('.star');
-
-            function toggleDayNight() {
-                if (backgroundLayer.classList.contains('day')) {
-                    backgroundLayer.classList.replace('day', 'night');
-                    sun.style.display = 'none';
-                    moon.style.display = 'block';
-                    stars.forEach(star => star.style.display = 'block');
-                } else {
-                    backgroundLayer.classList.replace('night', 'day');
-                    sun.style.display = 'block';
-                    moon.style.display = 'none';
-                    stars.forEach(star => star.style.display = 'none');
-                }
-            }
-
-            // Initialize with appropriate class
-            backgroundLayer.classList.add('day');
-            
-            setInterval(toggleDayNight, 10000); // Change every 10 seconds
         });
     </script>
 </body>

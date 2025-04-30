@@ -1,8 +1,7 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login(); // Memastikan user sudah login
+check_login();
 
-// Hanya pengguna biasa (role 'user') yang dapat mengakses halaman ini
 if ($_SESSION['role'] !== 'user') {
     header("Location: ../../dashboard.php?error=Anda tidak memiliki akses ke halaman ini");
     exit();
@@ -16,7 +15,6 @@ if (!$book_id) {
     exit();
 }
 
-// 1. Cek apakah user sudah meminjam 3 buku
 $sql_check_limit = "SELECT COUNT(*) as total FROM peminjaman WHERE user_id = ? AND status = 'dipinjam'";
 if ($stmt_limit = mysqli_prepare($koneksi, $sql_check_limit)) {
     mysqli_stmt_bind_param($stmt_limit, "i", $user_id);
@@ -35,7 +33,6 @@ if ($stmt_limit = mysqli_prepare($koneksi, $sql_check_limit)) {
     exit();
 }
 
-// 2. Cek apakah buku masih tersedia (stok > 0)
 $sql_check_stock = "SELECT judul, stok FROM buku WHERE id = ? AND stok > 0";
 if ($stmt_stock = mysqli_prepare($koneksi, $sql_check_stock)) {
     mysqli_stmt_bind_param($stmt_stock, "i", $book_id);
@@ -48,7 +45,6 @@ if ($stmt_stock = mysqli_prepare($koneksi, $sql_check_stock)) {
         exit();
     }
     
-    // Ambil judul buku untuk pesan sukses nantinya
     mysqli_stmt_bind_result($stmt_stock, $book_title, $stock);
     mysqli_stmt_fetch($stmt_stock);
     mysqli_stmt_close($stmt_stock);
@@ -57,7 +53,6 @@ if ($stmt_stock = mysqli_prepare($koneksi, $sql_check_stock)) {
     exit();
 }
 
-// 3. Cek apakah user sudah meminjam buku ini dan belum dikembalikan
 $sql_check_borrowed = "SELECT id FROM peminjaman WHERE user_id = ? AND buku_id = ? AND status = 'dipinjam'";
 if ($stmt_borrowed = mysqli_prepare($koneksi, $sql_check_borrowed)) {
     mysqli_stmt_bind_param($stmt_borrowed, "ii", $user_id, $book_id);
@@ -75,14 +70,11 @@ if ($stmt_borrowed = mysqli_prepare($koneksi, $sql_check_borrowed)) {
     exit();
 }
 
-// 4. Mulai transaksi
 mysqli_begin_transaction($koneksi);
 try {
-    // Set tanggal peminjaman dan pengembalian
     $tanggal_pinjam = date('Y-m-d');
-    $tanggal_kembali = date('Y-m-d', strtotime('+7 days')); // Durasi peminjaman 7 hari
+    $tanggal_kembali = date('Y-m-d', strtotime('+7 days'));
     
-    // Insert ke tabel peminjaman
     $sql_pinjam = "INSERT INTO peminjaman (user_id, buku_id, tanggal_pinjam, tanggal_kembali, status) VALUES (?, ?, ?, ?, 'dipinjam')";
     if ($stmt_pinjam = mysqli_prepare($koneksi, $sql_pinjam)) {
         mysqli_stmt_bind_param($stmt_pinjam, "iiss", $user_id, $book_id, $tanggal_pinjam, $tanggal_kembali);
@@ -95,7 +87,6 @@ try {
         throw new Exception("Gagal menyiapkan query peminjaman");
     }
     
-    // Kurangi stok buku
     $sql_update_stock = "UPDATE buku SET stok = stok - 1 WHERE id = ?";
     if ($stmt_update = mysqli_prepare($koneksi, $sql_update_stock)) {
         mysqli_stmt_bind_param($stmt_update, "i", $book_id);
@@ -108,13 +99,11 @@ try {
         throw new Exception("Gagal menyiapkan query update stok");
     }
     
-    // Jika semua berhasil, commit transaksi
     mysqli_commit($koneksi);
     header("Location: pinjam_buku.php?success=Buku " . urlencode($book_title) . " berhasil dipinjam. Jangan lupa mengembalikan sebelum tanggal " . date('d/m/Y', strtotime($tanggal_kembali)));
     exit();
     
 } catch (Exception $e) {
-    // Jika terjadi error, rollback transaksi
     mysqli_rollback($koneksi);
     header("Location: pinjam_buku.php?error=Terjadi kesalahan: " . urlencode($e->getMessage()));
     exit();

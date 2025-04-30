@@ -15,18 +15,15 @@ if (isset($_GET['success'])) {
     $success_message = sanitize($_GET['success']);
 }
 
-// Fetch books for user dashboard if user role
 $books = [];
 if ($role === 'user') {
-    // Pagination variables
-    $limit = 10; // Books per page
+    $limit = 10;
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $page = max(1, $page);
     $offset = ($page - 1) * $limit;
 
     $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 
-    // Count total books for pagination
     $sql_count = "SELECT COUNT(*) as total FROM buku";
     if (!empty($search)) {
         $sql_count .= " WHERE judul LIKE ?";
@@ -50,7 +47,6 @@ if ($role === 'user') {
     $page = min($page, max(1, $total_pages));
     $offset = ($page - 1) * $limit;
 
-    // Fetch books for the current page
     $sql = "SELECT * FROM buku";
     if (!empty($search)) {
         $sql .= " WHERE judul LIKE ?";

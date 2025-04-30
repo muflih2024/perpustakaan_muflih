@@ -4,15 +4,13 @@ check_login();
 
 $role = $_SESSION['role'];
 
-// Pagination variables
-$limit = 10; // Books per page
+$limit = 10; 
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$current_page = max(1, $current_page); // Ensure page is at least 1
+$current_page = max(1, $current_page); 
 $offset = ($current_page - 1) * $limit;
 
 $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 
-// --- Count total books for pagination ---
 $sql_count = "SELECT COUNT(*) as total FROM buku";
 $count_params = [];
 $count_types = '';
@@ -38,30 +36,26 @@ if ($stmt_count = mysqli_prepare($koneksi, $sql_count)) {
 }
 
 $total_pages = ceil($total_books / $limit);
-// Ensure current page is not greater than total pages
 $current_page = min($current_page, $total_pages);
-// Recalculate offset if current_page was adjusted
 $offset = ($current_page - 1) * $limit;
-$offset = max(0, $offset); // Ensure offset is not negative
+$offset = max(0, $offset); 
 
-// --- Fetch books for the current page ---
 $sql = "SELECT * FROM buku";
 $params = [];
 $types = '';
 if (!empty($search)) {
     $sql .= " WHERE judul LIKE ?";
     $search_param = "%{$search}%";
-    $params[] = &$search_param; // Pass by reference
+    $params[] = &$search_param; 
     $types .= 's';
 }
 $sql .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
-$params[] = &$limit; // Pass by reference
-$params[] = &$offset; // Pass by reference
-$types .= 'ii'; // Add types for limit and offset
+$params[] = &$limit; 
+$params[] = &$offset; 
+$types .= 'ii'; 
 
 $books = [];
 if ($stmt = mysqli_prepare($koneksi, $sql)) {
-    // Use call_user_func_array for dynamic binding
     if (!empty($types)) {
         mysqli_stmt_bind_param($stmt, $types, ...$params);
     }
@@ -86,16 +80,12 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Buku - Perpustakaan Muflih</title>
-    <!-- Menggunakan Bootstrap lokal -->
     <link href="../../assets/bootstrap.css/css/theme.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 <body>
     <div class="d-flex">
-        <!-- Sidebar -->
         <nav class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; min-height: 100vh;">
             <a href="../../dashboard.php" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
                 <i class="bi bi-book-half me-2" style="font-size: 1.5rem;"></i>
@@ -133,7 +123,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
             </div>
         </nav>
 
-        <!-- Content Area -->
         <div class="content flex-grow-1 p-3">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -211,12 +200,10 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     </table>
                 </div>
 
-                <!-- Pagination Links -->
                 <?php if ($total_pages > 1): ?>
                 <nav aria-label="Page navigation" class="mt-4 d-flex justify-content-center animate__animated animate__fadeInUp">
                     <ul class="pagination shadow-sm">
                         <?php
-                        // Base URL for pagination links
                         $base_url = "list_buku.php?";
                         if (!empty($search)) {
                             $base_url .= "search=" . urlencode($search) . "&";
@@ -224,20 +211,16 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                         $base_url .= "page=";
                         ?>
 
-                        <!-- Previous Button -->
                         <li class="page-item <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="<?php echo ($current_page <= 1) ? '#' : $base_url . ($current_page - 1); ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
 
-                        <!-- Page Number Links -->
                         <?php
-                        // Determine the range of pages to display
                         $start_page = max(1, $current_page - 2);
                         $end_page = min($total_pages, $current_page + 2);
 
-                        // Show first page and ellipsis if needed
                         if ($start_page > 1) {
                             echo '<li class="page-item"><a class="page-link" href="' . $base_url . '1">1</a></li>';
                             if ($start_page > 2) {
@@ -245,7 +228,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                             }
                         }
 
-                        // Loop through the page numbers
                         for ($i = $start_page; $i <= $end_page; $i++):
                         ?>
                             <li class="page-item <?php echo ($i == $current_page) ? 'active' : ''; ?>">
@@ -254,7 +236,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                         <?php endfor; ?>
 
                         <?php
-                        // Show last page and ellipsis if needed
                         if ($end_page < $total_pages) {
                             if ($end_page < $total_pages - 1) {
                                 echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
@@ -263,7 +244,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                         }
                         ?>
 
-                        <!-- Next Button -->
                         <li class="page-item <?php echo ($current_page >= $total_pages) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="<?php echo ($current_page >= $total_pages) ? '#' : $base_url . ($current_page + 1); ?>" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
@@ -272,13 +252,11 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     </ul>
                 </nav>
                 <?php endif; ?>
-                <!-- End Pagination Links -->
 
             </div>
         </div>
     </div>
 
-    <!-- Menggunakan Bootstrap JS lokal -->
     <script src="../../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

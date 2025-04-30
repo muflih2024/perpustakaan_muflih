@@ -1,14 +1,13 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login('admin'); // Admin only
+check_login('admin');
 
-$role = $_SESSION['role']; // Ubah dari role_session ke role untuk konsistensi
+$role = $_SESSION['role'];
 $user_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 $username = $user_role = '';
 $errors = [];
 
-// Fetch existing user data
 if ($user_id > 0) {
     $sql_fetch = "SELECT username, role FROM users WHERE id = ?";
     if ($stmt_fetch = mysqli_prepare($koneksi, $sql_fetch)) {
@@ -33,20 +32,16 @@ if ($user_id > 0) {
     exit();
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get and sanitize input data
     $new_username = trim($_POST['username']);
-    $new_password = trim($_POST['password']); // Password is optional on edit
+    $new_password = trim($_POST['password']);
     $new_role = trim($_POST['role']);
     $current_user_id = (int)$_POST['user_id'];
 
-    // Validation
     if (empty($new_username)) $errors[] = "Username wajib diisi.";
     elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $new_username)) {
         $errors[] = "Username hanya boleh berisi huruf, angka, dan underscore.";
     }
-    // Validate password only if it's entered
     if (!empty($new_password) && strlen($new_password) < 6) {
         $errors[] = "Password baru minimal harus 6 karakter.";
     }
@@ -55,10 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Role tidak valid.";
     }
     if ($current_user_id !== $user_id) {
-         $errors[] = "ID User tidak cocok."; // Security check
+         $errors[] = "ID User tidak cocok.";
     }
 
-    // Check if new username already exists (if changed)
     if ($new_username !== $username && empty($errors)) {
         $sql_check = "SELECT id FROM users WHERE username = ? AND id != ?";
         if ($stmt_check = mysqli_prepare($koneksi, $sql_check)) {
@@ -74,9 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // If no errors, update the database
     if (empty($errors)) {
-        // Prepare SQL statement (conditionally include password)
         if (!empty($new_password)) {
             $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
             $sql_update = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
@@ -97,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $errors[] = "Gagal menyiapkan statement update: " . mysqli_error($koneksi);
             }
         } else {
-            // No password update
             $sql_update = "UPDATE users SET username = ?, role = ? WHERE id = ?";
             
             if ($stmt_update = mysqli_prepare($koneksi, $sql_update)) {
@@ -117,7 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
-    // If errors occurred during POST, update variables to show submitted values
     $username = $new_username;
     $role = $new_role;
     mysqli_close($koneksi);
@@ -133,7 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* Basic styles from dashboard */
         body {
             display: flex;
             min-height: 100vh;
@@ -189,7 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <div class="content">
         <div class="container-fluid">
             <h2>Edit User (ID: <?php echo sanitize($user_id); ?>)</h2>

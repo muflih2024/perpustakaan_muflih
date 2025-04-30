@@ -1,10 +1,9 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login('admin'); // Admin only
+check_login('admin');
 
-$role = $_SESSION['role']; // For sidebar
+$role = $_SESSION['role'];
 
-// Fetch users from database
 $sql = "SELECT id, username, role FROM users ORDER BY username ASC";
 $result = mysqli_query($koneksi, $sql);
 
@@ -12,13 +11,11 @@ if ($result) {
     $users = mysqli_fetch_all($result, MYSQLI_ASSOC);
     mysqli_free_result($result);
 } else {
-    // Handle error
     die("Error fetching users: " . mysqli_error($koneksi));
 }
 
 mysqli_close($koneksi);
 
-// Check for messages
 $success_message = isset($_GET['success']) ? sanitize($_GET['success']) : '';
 $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
 
@@ -32,7 +29,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* Basic styles from dashboard */
         body {
             display: flex;
             min-height: 100vh;
@@ -91,7 +87,6 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <div class="content">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -132,8 +127,7 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                                 <td><?php echo sanitize(ucfirst($user['role'])); ?></td>
                                 <td>
                                     <a href="edit_user.php?id=<?php echo $user['id']; ?>" class="btn btn-sm btn-warning me-1"><i class="bi bi-pencil-square"></i> Edit</a>
-                                    <?php // Prevent deleting the currently logged-in admin or the initial admin if needed ?>
-                                    <?php if ($user['id'] != $_SESSION['user_id']): // Example: Prevent self-delete ?>
+                                    <?php if ($user['id'] != $_SESSION['user_id']): ?>
                                         <a href="hapus_user.php?id=<?php echo $user['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Anda yakin ingin menghapus user ini?');"><i class="bi bi-trash-fill"></i> Hapus</a>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-danger" disabled><i class="bi bi-trash-fill"></i> Hapus</button>

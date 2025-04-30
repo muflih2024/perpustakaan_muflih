@@ -1,26 +1,23 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login('admin'); // Admin only
+check_login('admin');
 
-$role = $_SESSION['role']; // Mengubah dari role_session menjadi role untuk konsistensi
+$role = $_SESSION['role'];
 
 $username = $password = $user_role = '';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get and sanitize input
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
     $user_role = trim($_POST['role']);
 
-    // Validation
     if (empty($username)) $errors[] = "Username wajib diisi.";
-    // Basic username validation (alphanumeric + underscore)
     elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
         $errors[] = "Username hanya boleh berisi huruf, angka, dan underscore.";
     }
     if (empty($password)) $errors[] = "Password wajib diisi.";
-    elseif (strlen($password) < 6) { // Example: Minimum password length
+    elseif (strlen($password) < 6) {
         $errors[] = "Password minimal harus 6 karakter.";
     }
     if (empty($user_role)) $errors[] = "Role wajib dipilih.";
@@ -28,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = "Role tidak valid.";
     }
 
-    // Check if username already exists
     if (empty($errors)) {
         $sql_check = "SELECT id FROM users WHERE username = ?";
         if ($stmt_check = mysqli_prepare($koneksi, $sql_check)) {
@@ -44,7 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // If no errors, insert into database
     if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $sql_insert = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
@@ -78,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* Basic styles from dashboard */
         body {
             display: flex;
             min-height: 100vh;
@@ -134,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <div class="content">
         <div class="container-fluid">
             <h2>Tambah User Baru</h2>

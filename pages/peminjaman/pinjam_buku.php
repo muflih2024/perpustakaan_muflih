@@ -1,8 +1,7 @@
 <?php
 require_once '../../config/koneksi.php';
-check_login(); // Memastikan user sudah login
+check_login();
 
-// Hanya pengguna biasa (role 'user') yang dapat mengakses halaman ini
 if ($_SESSION['role'] !== 'user') {
     header("Location: ../../dashboard.php?error=Anda tidak memiliki akses ke halaman ini");
     exit();
@@ -12,15 +11,13 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $role = $_SESSION['role'];
 
-// Pagination variables
-$limit = 10; // Books per page
+$limit = 10;
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$current_page = max(1, $current_page); // Ensure page is at least 1
+$current_page = max(1, $current_page);
 $offset = ($current_page - 1) * $limit;
 
 $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 
-// Count total available books (with stock > 0)
 $sql_count = "SELECT COUNT(*) as total FROM buku WHERE stok > 0";
 $count_params = [];
 $count_types = '';
@@ -50,7 +47,6 @@ $current_page = min($current_page, max(1, $total_pages));
 $offset = ($current_page - 1) * $limit;
 $offset = max(0, $offset);
 
-// Fetch available books for the current page
 $sql = "SELECT * FROM buku WHERE stok > 0";
 $params = [];
 $types = '';
@@ -78,7 +74,6 @@ if ($stmt = mysqli_prepare($koneksi, $sql)) {
     die("Error fetching books: " . mysqli_error($koneksi));
 }
 
-// Check if user already has active books
 $sql_active_loans = "SELECT COUNT(*) as total_loans FROM peminjaman WHERE user_id = ? AND status = 'dipinjam'";
 $active_loans = 0;
 
@@ -91,7 +86,6 @@ if ($stmt_loans = mysqli_prepare($koneksi, $sql_active_loans)) {
     mysqli_stmt_close($stmt_loans);
 }
 
-// Handle success or error messages
 $success_message = isset($_GET['success']) ? sanitize($_GET['success']) : '';
 $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
 
@@ -103,16 +97,12 @@ mysqli_close($koneksi);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pinjam Buku - Perpustakaan Muflih</title>
-    <!-- Menggunakan Bootstrap lokal -->
     <link href="../../assets/bootstrap.css/css/theme.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </head>
 <body>
     <div class="d-flex">
-        <!-- Sidebar -->
         <nav class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; min-height: 100vh;">
             <a href="../../dashboard.php" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
                 <i class="bi bi-book-half me-2" style="font-size: 1.5rem;"></i>
@@ -153,7 +143,6 @@ mysqli_close($koneksi);
             </div>
         </nav>
 
-        <!-- Content Area -->
         <div class="content flex-grow-1 p-3">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -250,12 +239,10 @@ mysqli_close($koneksi);
                     </table>
                 </div>
 
-                <!-- Pagination Links -->
                 <?php if ($total_pages > 1): ?>
                 <nav aria-label="Page navigation" class="mt-4 d-flex justify-content-center animate__animated animate__fadeInUp">
                     <ul class="pagination shadow-sm">
                         <?php
-                        // Base URL for pagination links
                         $base_url = "pinjam_buku.php?";
                         if (!empty($search)) {
                             $base_url .= "search=" . urlencode($search) . "&";
@@ -263,20 +250,16 @@ mysqli_close($koneksi);
                         $base_url .= "page=";
                         ?>
 
-                        <!-- Previous Button -->
                         <li class="page-item <?php echo ($current_page <= 1) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="<?php echo ($current_page <= 1) ? '#' : $base_url . ($current_page - 1); ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
 
-                        <!-- Page Number Links -->
                         <?php
-                        // Determine the range of pages to display
                         $start_page = max(1, $current_page - 2);
                         $end_page = min($total_pages, $current_page + 2);
 
-                        // Show first page and ellipsis if needed
                         if ($start_page > 1) {
                             echo '<li class="page-item"><a class="page-link" href="' . $base_url . '1">1</a></li>';
                             if ($start_page > 2) {
@@ -284,7 +267,6 @@ mysqli_close($koneksi);
                             }
                         }
 
-                        // Loop through the page numbers
                         for ($i = $start_page; $i <= $end_page; $i++):
                         ?>
                             <li class="page-item <?php echo ($i == $current_page) ? 'active' : ''; ?>">
@@ -293,7 +275,6 @@ mysqli_close($koneksi);
                         <?php endfor; ?>
 
                         <?php
-                        // Show last page and ellipsis if needed
                         if ($end_page < $total_pages) {
                             if ($end_page < $total_pages - 1) {
                                 echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
@@ -302,7 +283,6 @@ mysqli_close($koneksi);
                         }
                         ?>
 
-                        <!-- Next Button -->
                         <li class="page-item <?php echo ($current_page >= $total_pages) ? 'disabled' : ''; ?>">
                             <a class="page-link" href="<?php echo ($current_page >= $total_pages) ? '#' : $base_url . ($current_page + 1); ?>" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>

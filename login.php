@@ -105,18 +105,7 @@ if (isset($_GET['error'])) {
     <title>Login - Perpustakaan Muflih</title>
     <link href="assets/bootstrap.css/css/theme.css" rel="stylesheet">
     <style>
-        .book-character {
-            position: absolute;
-            bottom: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 150px;
-            height: 180px;
-            perspective: 1000px;
-            z-index: 10;
-            transition: transform 0.2s ease-out;
-        }
-
+        /* Background and day-night elements */
         .background-layer {
             position: fixed;
             top: 0;
@@ -128,6 +117,58 @@ if (isset($_GET['error'])) {
             z-index: -1;
         }
 
+        .day {
+            background: linear-gradient(to bottom, #87CEEB, #4682B4);
+        }
+
+        .night {
+            background: linear-gradient(to bottom, #000428, #004e92);
+        }
+
+        /* Sun and moon */
+        .sun {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(255, 223, 0, 0.8);
+            z-index: 1;
+            transition: all 2s ease-in-out;
+        }
+
+        .moon {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #FFF, #BBB);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            z-index: 1;
+            transition: all 2s ease-in-out;
+        }
+
+        /* Stars */
+        .star {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Clouds */
         .cloud {
             position: absolute;
             background: rgba(255, 255, 255, 0.9);
@@ -165,6 +206,19 @@ if (isset($_GET['error'])) {
             to { transform: translateX(calc(100vw + 300px)); }
         }
 
+        /* Book character */
+        .book-character {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 180px;
+            perspective: 1000px;
+            z-index: 10;
+            transition: transform 0.2s ease-out;
+        }
+
         .book-body {
             width: 100%;
             height: 100%;
@@ -197,6 +251,7 @@ if (isset($_GET['error'])) {
             border: 1px solid #5c300a;
             border-radius: 3px;
         }
+        
         .book-title-2 {
             position: absolute;
             top: 50px;
@@ -208,6 +263,7 @@ if (isset($_GET['error'])) {
             border-radius: 3px;
         }
 
+        /* Book eyes */
         .book-eyes {
             position: absolute;
             top: 45%;
@@ -250,18 +306,23 @@ if (isset($_GET['error'])) {
 </head>
 <body>
     <div class="background-layer">
+        <div class="sun" id="sun"></div>
+        <div class="moon" id="moon" style="display: none;"></div>
         <div class="cloud c1"></div>
         <div class="cloud c2"></div>
         <div class="cloud c3"></div>
         <div class="cloud c4"></div>
         <div class="cloud c5"></div>
+        <div class="star" style="top: 20%; left: 30%; display: none;"></div>
+        <div class="star" style="top: 40%; left: 50%; display: none;"></div>
+        <div class="star" style="top: 60%; left: 70%; display: none;"></div>
     </div>
 
     <div class="container-fluid vh-100 p-0 d-flex align-items-center justify-content-center">
         <div class="row h-100 g-0 w-100">
             <div class="col-md-6 text-white d-flex flex-column justify-content-center p-4 position-relative overflow-hidden">
                 <div class="position-relative" style="z-index: 5">
-                    <h1>Welcome to Perpustakaan</h1>
+                    <h1>Welcome to Perpustakaan Muflih</h1>
                     <p>Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.</p>
                 </div>
 
@@ -316,7 +377,13 @@ if (isset($_GET['error'])) {
                                                 <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
                                             </svg>
                                         </span>
-                                        <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Password" required>
+                                        <input type="password" class="form-control border-start-0 border-end-0" id="password" name="password" placeholder="Password" required>
+                                        <span class="input-group-text bg-white border-start-0" id="togglePassword" style="cursor: pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                            </svg>
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="mb-4 text-end">
@@ -421,6 +488,53 @@ if (isset($_GET['error'])) {
                      eyes.forEach(eye => eye.style.transform = 'scale(1)');
                  });
              });
+        });
+
+        // Password toggle visibility
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+        const eyeIcon = togglePassword.querySelector('svg');
+
+        togglePassword.addEventListener('click', function (e) {
+            // toggle the type attribute
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            
+            // toggle the eye / eye slash icon
+            if (type === 'password') {
+                eyeIcon.innerHTML = `<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>`; // Eye icon SVG path
+                eyeIcon.setAttribute('viewBox', '0 0 16 16');
+            } else {
+                eyeIcon.innerHTML = `<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.94 5.94 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>`; // Eye slash icon SVG path
+                eyeIcon.setAttribute('viewBox', '0 0 16 16');
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backgroundLayer = document.querySelector('.background-layer');
+            const sun = document.getElementById('sun');
+            const moon = document.getElementById('moon');
+            const stars = document.querySelectorAll('.star');
+
+            function toggleDayNight() {
+                if (backgroundLayer.classList.contains('day')) {
+                    backgroundLayer.classList.replace('day', 'night');
+                    sun.style.display = 'none';
+                    moon.style.display = 'block';
+                    stars.forEach(star => star.style.display = 'block');
+                } else {
+                    backgroundLayer.classList.replace('night', 'day');
+                    sun.style.display = 'block';
+                    moon.style.display = 'none';
+                    stars.forEach(star => star.style.display = 'none');
+                }
+            }
+
+            // Initialize with appropriate class
+            backgroundLayer.classList.add('day');
+            
+            setInterval(toggleDayNight, 10000); // Change every 10 seconds
         });
     </script>
 </body>

@@ -5,7 +5,7 @@ check_login('admin');
 $role = $_SESSION['role'];
 $book_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$judul = $pengarang = $penerbit = $tahun_terbit = $genre = $stok = '';
+$judul = $pengarang = $penerbit = $tahun_terbit = $genre = $stok = $gambar = '';
 $errors = [];
 
 if ($book_id <= 0) {
@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 $tahun_terbit = $book['tahun_terbit'];
                 $genre = $book['genre'];
                 $stok = $book['stok'];
+                $gambar = $book['gambar'] ?? '';
             } else {
                 header("Location: list_buku.php?error=Buku tidak ditemukan.");
                 exit();
@@ -49,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $genre = trim($_POST['genre']);
     $stok = trim($_POST['stok']);
     $current_book_id = (int)$_POST['book_id'];
+    $current_gambar = $_POST['current_gambar'] ?? '';
 
     if ($current_book_id !== $book_id) {
         $errors[] = "ID buku tidak cocok.";
@@ -68,11 +70,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!filter_var($stok, FILTER_VALIDATE_INT) || $stok < 0) {
         $errors[] = "Stok harus berupa angka non-negatif.";
     }
+    
+    // Handle image upload
+    $gambar = $current_gambar;
+    if(isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
+        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
+        $file_type = $_FILES['gambar']['type'];
+        
+        if(!in_array($file_type, $allowed_types)) {
+            $errors[] = "File harus berformat JPG, JPEG, atau PNG.";
+        } else {
+            $file_size = $_FILES['gambar']['size'];
+            if($file_size > 2097152) { // 2MB
+                $errors[] = "Ukuran file tidak boleh lebih dari 2MB.";
+            } else {
+                $file_name = time() . '_' . $_FILES['gambar']['name'];
+                $upload_dir = '../../assets/book_images/';
+                $upload_path = $upload_dir . $file_name;
+                
+                if(!move_uploaded_file($_FILES['gambar']['tmp_name'], $upload_path)) {
+                    $errors[] = "Gagal mengupload gambar.";
+                } else {
+                    // Delete old image if exists
+                    if(!empty($current_gambar)) {
+                        $old_image_path = $upload_dir . $current_gambar;
+                        if(file_exists($old_image_path) && $current_gambar !== 'default-book.jpg') {
+                            @unlink($old_image_path);
+                        }
+                    }
+                    $gambar = $file_name;
+                }
+            }
+        }
+    }
 
     if (empty($errors)) {
-        $sql = "UPDATE buku SET judul = ?, pengarang = ?, penerbit = ?, tahun_terbit = ?, genre = ?, stok = ? WHERE id = ?";
+        $sql = "UPDATE buku SET judul = ?, pengarang = ?, penerbit = ?, tahun_terbit = ?, genre = ?, stok = ?, gambar = ? WHERE id = ?";
         if ($stmt = mysqli_prepare($koneksi, $sql)) {
-            mysqli_stmt_bind_param($stmt, "sssssii", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $book_id);
+            mysqli_stmt_bind_param($stmt, "sssssssi", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $gambar, $book_id);
             if (mysqli_stmt_execute($stmt)) {
                 mysqli_stmt_close($stmt);
                 mysqli_close($koneksi);
@@ -125,6 +160,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             flex: 1;
             padding: 20px;
         }
+        .img-preview {
+            max-height: 200px;
+            max-width: 100%;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -170,39 +210,85 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . '?id=' . $book_id; ?>" method="post">
+            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]) . '?id=' . $book_id; ?>" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="book_id" value="<?php echo sanitize($book_id); ?>">
-                <div class="mb-3">
-                    <label for="judul" class="form-label">Judul Buku</label>
-                    <input type="text" class="form-control" id="judul" name="judul" value="<?php echo sanitize($judul); ?>" required>
+                <input type="hidden" name="current_gambar" value="<?php echo sanitize($gambar); ?>">
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="judul" class="form-label">Judul Buku</label>
+                            <input type="text" class="form-control" id="judul" name="judul" value="<?php echo sanitize($judul); ?>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pengarang" class="form-label">Pengarang</label>
+                            <input type="text" class="form-control" id="pengarang" name="pengarang" value="<?php echo sanitize($pengarang); ?>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="penerbit" class="form-label">Penerbit</label>
+                            <input type="text" class="form-control" id="penerbit" name="penerbit" value="<?php echo sanitize($penerbit); ?>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tahun_terbit" class="form-label">Tahun Terbit</label>
+                            <input type="number" class="form-control" id="tahun_terbit" name="tahun_terbit" placeholder="YYYY" pattern="\d{4}" value="<?php echo sanitize($tahun_terbit); ?>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="genre" class="form-label">Genre</label>
+                            <input type="text" class="form-control" id="genre" name="genre" value="<?php echo sanitize($genre); ?>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stok" class="form-label">Stok</label>
+                            <input type="number" class="form-control" id="stok" name="stok" min="0" value="<?php echo sanitize($stok); ?>" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Gambar Sampul</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3 text-center">
+                                    <img id="coverPreview" src="<?php echo !empty($gambar) ? '../../assets/book_images/'.$gambar : '../../assets/book_images/contoh.png'; ?>" class="img-fluid img-preview rounded shadow-sm" alt="Preview Sampul">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="gambar" class="form-label">Ubah Gambar</label>
+                                    <input type="file" class="form-control" id="gambar" name="gambar" accept=".jpg,.jpeg,.png">
+                                    <div class="form-text">Format: JPG, JPEG, PNG. Maks 2MB.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="pengarang" class="form-label">Pengarang</label>
-                    <input type="text" class="form-control" id="pengarang" name="pengarang" value="<?php echo sanitize($pengarang); ?>" required>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Simpan Perubahan</button>
+                    <a href="list_buku.php" class="btn btn-secondary"><i class="bi bi-x-lg me-2"></i>Batal</a>
                 </div>
-                <div class="mb-3">
-                    <label for="penerbit" class="form-label">Penerbit</label>
-                    <input type="text" class="form-control" id="penerbit" name="penerbit" value="<?php echo sanitize($penerbit); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="tahun_terbit" class="form-label">Tahun Terbit</label>
-                    <input type="number" class="form-control" id="tahun_terbit" name="tahun_terbit" placeholder="YYYY" pattern="\d{4}" value="<?php echo sanitize($tahun_terbit); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="genre" class="form-label">Genre</label>
-                    <input type="text" class="form-control" id="genre" name="genre" value="<?php echo sanitize($genre); ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="stok" class="form-label">Stok</label>
-                    <input type="number" class="form-control" id="stok" name="stok" min="0" value="<?php echo sanitize($stok); ?>" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                <a href="list_buku.php" class="btn btn-secondary">Batal</a>
             </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('gambar');
+            const previewImage = document.getElementById('coverPreview');
+            
+            imageInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                    };
+                    
+                    reader.readAsDataURL(this.files[0]);
+                } else {
+                    previewImage.src = '../../assets/book_images/contoh.png';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 

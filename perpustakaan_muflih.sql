@@ -40,3 +40,7 @@ CREATE TABLE IF NOT EXISTS peminjaman (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (buku_id) REFERENCES buku(id)
 );
+
+--tambah gambar
+ALTER TABLE buku ADD COLUMN gambar VARCHAR(255) DEFAULT NULL;
+

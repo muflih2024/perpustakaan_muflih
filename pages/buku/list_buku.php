@@ -83,6 +83,18 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     <link href="../../assets/bootstrap.css/css/theme.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        .book-row {
+            cursor: pointer;
+        }
+        .book-row:hover {
+            background-color: rgba(0,0,0,0.05) !important;
+        }
+        .book-cover {
+            max-height: 300px;
+            object-fit: contain;
+        }
+    </style>
 </head>
 <body>
     <div class="d-flex">
@@ -175,7 +187,16 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                         <tbody>
                             <?php if (count($books) > 0): ?>
                                 <?php foreach ($books as $index => $book): ?>
-                                <tr class="animate__animated animate__fadeIn" style="animation-delay: <?php echo $index * 0.05; ?>s;">
+                                <tr class="animate__animated animate__fadeIn book-row" style="animation-delay: <?php echo $index * 0.05; ?>s;" 
+                                    data-bs-toggle="modal" data-bs-target="#bookModal" 
+                                    data-id="<?php echo $book['id']; ?>"
+                                    data-judul="<?php echo htmlspecialchars($book['judul']); ?>"
+                                    data-pengarang="<?php echo htmlspecialchars($book['pengarang']); ?>"
+                                    data-penerbit="<?php echo htmlspecialchars($book['penerbit']); ?>"
+                                    data-tahun="<?php echo htmlspecialchars($book['tahun_terbit']); ?>"
+                                    data-genre="<?php echo htmlspecialchars($book['genre']); ?>"
+                                    data-stok="<?php echo htmlspecialchars($book['stok']); ?>"
+                                    data-gambar="<?php echo !empty($book['gambar']) ? htmlspecialchars($book['gambar']) : ''; ?>">
                                     <td><?php echo sanitize($book['id']); ?></td>
                                     <td><?php echo sanitize($book['judul']); ?></td>
                                     <td><?php echo sanitize($book['pengarang']); ?></td>
@@ -185,8 +206,8 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                                     <td><?php echo sanitize($book['stok']); ?></td>
                                     <?php if ($role === 'admin'): ?>
                                         <td class="text-center">
-                                            <a href="edit_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-warning me-1" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="hapus_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-danger" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus buku ini: <?php echo addslashes(sanitize($book['judul'])); ?>?');"><i class="bi bi-trash-fill"></i></a>
+                                            <a href="edit_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-warning me-1" title="Edit" onclick="event.stopPropagation();"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="hapus_buku.php?id=<?php echo $book['id']; ?>" class="btn btn-sm btn-danger" title="Hapus" onclick="event.stopPropagation(); return confirm('Apakah Anda yakin ingin menghapus buku ini: <?php echo addslashes(sanitize($book['judul'])); ?>?');"><i class="bi bi-trash-fill"></i></a>
                                         </td>
                                     <?php endif; ?>
                                 </tr>
@@ -269,6 +290,98 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
         </div>
     </div>
 
+    <!-- Book Modal -->
+    <div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fs-5" id="bookModalLabel">Detail Buku</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <img id="bookCover" src="../../assets/book_images/default-book.jpg" alt="Cover Buku" class="img-fluid book-cover shadow-sm rounded">
+                        </div>
+                        <div class="col-md-8">
+                            <h3 id="bookTitle" class="mb-3"></h3>
+                            <table class="table">
+                                <tr>
+                                    <th width="35%">Pengarang</th>
+                                    <td id="bookAuthor"></td>
+                                </tr>
+                                <tr>
+                                    <th>Penerbit</th>
+                                    <td id="bookPublisher"></td>
+                                </tr>
+                                <tr>
+                                    <th>Tahun Terbit</th>
+                                    <td id="bookYear"></td>
+                                </tr>
+                                <tr>
+                                    <th>Genre</th>
+                                    <td id="bookGenre"></td>
+                                </tr>
+                                <tr>
+                                    <th>Ketersediaan</th>
+                                    <td id="bookStock"></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add a default book cover image
+            const defaultCover = '../../assets/book_images/contoh.png';
+            
+            // Handle book modal data population
+            const bookModal = document.getElementById('bookModal');
+            if (bookModal) {
+                bookModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    
+                    // Extract book data
+                    const id = button.getAttribute('data-id');
+                    const judul = button.getAttribute('data-judul');
+                    const pengarang = button.getAttribute('data-pengarang');
+                    const penerbit = button.getAttribute('data-penerbit');
+                    const tahun = button.getAttribute('data-tahun');
+                    const genre = button.getAttribute('data-genre');
+                    const stok = button.getAttribute('data-stok');
+                    const gambar = button.getAttribute('data-gambar');
+                    
+                    // Update modal content
+                    document.getElementById('bookTitle').textContent = judul;
+                    document.getElementById('bookAuthor').textContent = pengarang;
+                    document.getElementById('bookPublisher').textContent = penerbit;
+                    document.getElementById('bookYear').textContent = tahun;
+                    document.getElementById('bookGenre').textContent = genre;
+                    document.getElementById('bookStock').textContent = stok + ' buku tersedia';
+                    
+                    // Set image
+                    const coverElement = document.getElementById('bookCover');
+                    if (gambar && gambar.trim() !== '') {
+                        coverElement.src = '../../assets/book_images/' + gambar;
+                    } else {
+                        coverElement.src = defaultCover;
+                    }
+                    
+                    // Handle image error
+                    coverElement.onerror = function() {
+                        this.src = defaultCover;
+                    };
+                });
+            }
+        });
+    </script>
     <script src="../../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

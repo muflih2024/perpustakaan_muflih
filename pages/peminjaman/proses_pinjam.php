@@ -8,7 +8,8 @@ if ($_SESSION['role'] !== 'user') {
 }
 
 $user_id = $_SESSION['user_id'];
-$book_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$book_id = isset($_POST['buku_id']) ? (int)$_POST['buku_id'] : 
+           (isset($_GET['id']) ? (int)$_GET['id'] : 0);
 
 if (!$book_id) {
     header("Location: pinjam_buku.php?error=ID buku tidak valid");

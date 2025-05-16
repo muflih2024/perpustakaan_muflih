@@ -211,10 +211,36 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                                         </td>
                                     <?php endif; ?>
                                 </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="<?php echo ($role === 'admin' ? 8 : 7); ?>" class="text-center">Tidak ada data buku ditemukan<?php echo !empty($search) ? ' untuk pencarian \'' . sanitize($search) . '\'' : ''; ?>.</td>
+                                <?php endforeach; ?>                            <?php else: ?>                                <tr>
+                                    <td colspan="<?php echo ($role === 'admin' ? 8 : 7); ?>" class="text-center py-5">
+                                        <div class="my-4">
+                                            <i class="bi bi-book-half text-muted" style="font-size: 5rem;"></i>
+                                        </div>
+                                        <h4 class="text-muted mb-3">Tidak ada buku ditemukan</h4>
+                                        <?php if (!empty($search)): ?>
+                                            <div class="col-md-6 mx-auto">
+                                                <div class="alert alert-info py-3">
+                                                    <p class="mb-3">
+                                                        Pencarian untuk "<strong><?php echo sanitize($search); ?></strong>" tidak menghasilkan buku apapun.
+                                                    </p>
+                                                    <a href="list_buku.php" class="btn btn-primary btn-sm">
+                                                        <i class="bi bi-arrow-left me-1"></i> Kembali ke semua buku
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="col-md-6 mx-auto">
+                                                <div class="alert alert-light border py-3">
+                                                    <p class="mb-3">Belum ada buku yang ditambahkan ke perpustakaan.</p>
+                                                    <?php if ($role === 'admin'): ?>
+                                                        <a href="tambah_buku.php" class="btn btn-primary">
+                                                            <i class="bi bi-plus-circle me-2"></i>Tambah Buku Baru
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -299,9 +325,8 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-3">
-                            <img id="bookCover" src="../../assets/book_images/default-book.jpg" alt="Cover Buku" class="img-fluid book-cover shadow-sm rounded">
+                    <div class="row">                        <div class="col-md-4 text-center mb-3">
+                            <img id="bookCover" src="../../assets/book_images/contoh.png" alt="Cover Buku" class="img-fluid book-cover shadow-sm rounded">
                         </div>
                         <div class="col-md-8">
                             <h3 id="bookTitle" class="mb-3"></h3>
@@ -338,8 +363,7 @@ $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add a default book cover image
+        document.addEventListener('DOMContentLoaded', function() {            // Default book cover image
             const defaultCover = '../../assets/book_images/contoh.png';
             
             // Handle book modal data population

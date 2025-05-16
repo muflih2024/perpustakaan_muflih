@@ -1,31 +1,48 @@
--- Database: Perpustakaan Muflih
--- Tabel: buku
 
--- INSERT DATA BUKU
-INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok, gambar) VALUES 
-('Laskar Pelangi', 'Andrea Hirata', 'Bentang Pustaka', '2005', 'Novel', 15, 'laskar_pelangi.jpg'),
-('Bumi Manusia', 'Pramoedya Ananta Toer', 'Hasta Mitra', '1980', 'Fiksi Sejarah', 12, 'bumi_manusia.jpg'),
-('Negeri 5 Menara', 'Ahmad Fuadi', 'Gramedia', '2009', 'Novel', 20, 'negeri_5_menara.jpg'),
-('Filosofi Teras', 'Henry Manampiring', 'Kompas', '2018', 'Filsafat', 10, 'filosofi_teras.jpg'),
-('Pulang', 'Leila S. Chudori', 'Kepustakaan Populer Gramedia', '2012', 'Novel Sejarah', 8, 'pulang.jpg'),
-('Laut Bercerita', 'Leila S. Chudori', 'Kepustakaan Populer Gramedia', '2017', 'Novel Sejarah', 9, 'laut_bercerita.jpg'),
-('Ayat-Ayat Cinta', 'Habiburrahman El Shirazy', 'Republika', '2004', 'Novel Islam', 14, 'ayat_cinta.jpg'),
-('Sang Pemimpi', 'Andrea Hirata', 'Bentang Pustaka', '2006', 'Novel', 11, 'sang_pemimpi.jpg'),
-('Perahu Kertas', 'Dee Lestari', 'Bentang Pustaka', '2009', 'Novel Romantis', 7, 'perahu_kertas.jpg'),
-('Belajar Pemrograman Python', 'Jubilee Enterprise', 'Elex Media Komputindo', '2019', 'Teknologi', 15, 'python_programming.jpg'),
-('Hujan', 'Tere Liye', 'Gramedia Pustaka Utama', '2016', 'Fiksi', 13, 'hujan.jpg'),
-('Sejarah Dunia yang Disembunyikan', 'Jonathan Black', 'Alvabet', '2015', 'Sejarah', 6, 'sejarah_dunia.jpg'),
-('Statistika Terapan', 'Singgih Santoso', 'Elex Media Komputindo', '2018', 'Pendidikan', 10, 'statistika.jpg'),
-('Algoritma dan Pemrograman', 'Rinaldi Munir', 'Informatika', '2016', 'Teknologi', 9, 'algoritma.jpg'),
-('Dasar-Dasar Manajemen', 'T. Hani Handoko', 'BPFE Yogyakarta', '2013', 'Manajemen', 8, 'manajemen.jpg'),
-('Anatomi dan Fisiologi', 'Syaifuddin', 'EGC', '2011', 'Kesehatan', 7, 'anatomi.jpg'),
-('Kimia Dasar', 'Raymond Chang', 'Erlangga', '2010', 'Pendidikan', 10, 'kimia.jpg'),
-('Fisika Modern', 'Kenneth S. Krane', 'UI Press', '2012', 'Pendidikan', 6, 'fisika.jpg'),
-('Ensiklopedia Hewan', 'John Woodward', 'DK Publishing', '2014', 'Ensiklopedia', 5, 'ensiklopedia_hewan.jpg'),
-('Sejarah Indonesia Modern', 'M.C. Ricklefs', 'Serambi', '2008', 'Sejarah', 8, 'sejarah_indonesia.jpg');
+USE perpustakaan_muflih;
 
--- CATATAN: 
--- 1. Pastikan folder assets/book_images/ sudah dibuat dan dapat diakses
--- 2. Gambar sampul perlu disediakan dan ditempatkan di folder tersebut
--- 3. Gambar sampul harus sesuai dengan nama pada kolom 'gambar'
--- 4. Jika belum ada gambar, sistem akan menggunakan contoh-book.jpg
+-- Only create the table if it doesn't exist (won't drop existing data)
+-- DROP TABLE IF EXISTS buku;  -- commented out to preserve existing data
+
+-- Create the books table structure only if it doesn't exist yet
+CREATE TABLE IF NOT EXISTS buku (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    judul VARCHAR(255) NOT NULL,
+    pengarang VARCHAR(100) NOT NULL,
+    penerbit VARCHAR(100) NOT NULL,
+    tahun_terbit INT NOT NULL,
+    genre VARCHAR(50) NOT NULL,
+    stok INT NOT NULL DEFAULT 0
+);
+
+-- Insert sample books data
+INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok) VALUES
+('Bumi Manusia', 'Pramoedya Ananta Toer', 'Hasta Mitra', 1980, 'Fiksi Sejarah', 8),
+('Filosofi Kopi', 'Dee Lestari', 'Truedee Books', 2006, 'Kumpulan Cerpen', 12),
+('Negeri 5 Menara', 'Ahmad Fuadi', 'Gramedia Pustaka Utama', 2009, 'Novel', 15),
+('Sang Pemimpi', 'Andrea Hirata', 'Bentang Pustaka', 2006, 'Novel', 7),
+('Perahu Kertas', 'Dee Lestari', 'Bentang Pustaka', 2009, 'Novel', 9),
+('Ayat-ayat Cinta', 'Habiburrahman El Shirazy', 'Republika', 2004, 'Novel Islami', 6),
+('Supernova: Ksatria, Putri, dan Bintang Jatuh', 'Dee Lestari', 'Truedee Books', 2001, 'Novel', 5),
+('Pulang', 'Tere Liye', 'Republika', 2015, 'Novel', 11),
+('Cantik itu Luka', 'Eka Kurniawan', 'Gramedia Pustaka Utama', 2002, 'Novel', 8),
+('Tenggelamnya Kapal Van Der Wijck', 'Hamka', 'Balai Pustaka', 1938, 'Novel', 4),
+('Manusia Setengah Salmon', 'Raditya Dika', 'Gagas Media', 2011, 'Humor', 14),
+('Indonesia Etc.', 'Elizabeth Pisani', 'Godown', 2014, 'Non-fiksi', 3),
+('Critical Eleven', 'Ika Natassa', 'Gramedia Pustaka Utama', 2015, 'Novel', 7),
+('Saman', 'Ayu Utami', 'Kepustakaan Populer Gramedia', 1998, 'Novel', 6);
+
+-- Add some educational books
+INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok) VALUES
+('Matematika untuk SMA Kelas X', 'Tim Penyusun Kemendikbud', 'Kemendikbud', 2021, 'Buku Pelajaran', 20),
+('Fisika SMA Kelas XI', 'Marthen Kanginan', 'Erlangga', 2020, 'Buku Pelajaran', 15),
+('Bahasa Indonesia SMA Kelas XII', 'Tim Penyusun', 'Yudhistira', 2019, 'Buku Pelajaran', 18),
+('Biologi Campbell', 'Jane B. Reece', 'Erlangga', 2017, 'Buku Pelajaran', 8);
+
+-- Add some computer science books
+INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok) VALUES
+('Pemrograman Web dengan PHP dan MySQL', 'Betha Sidik', 'Informatika', 2019, 'Komputer', 12),
+('Machine Learning with Python', 'Sebastian Raschka', 'Packt Publishing', 2019, 'Komputer', 5),
+('Algoritma dan Pemrograman', 'Rinaldi Munir', 'Informatika', 2016, 'Komputer', 9),
+('Database Management Systems', 'Raghu Ramakrishnan', 'McGraw-Hill', 2015, 'Komputer', 6),
+('Software Engineering: A Practitioner''s Approach', 'Roger S. Pressman', 'McGraw-Hill', 2014, 'Komputer', 4);

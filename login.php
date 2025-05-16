@@ -18,9 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = trim($_POST['password']);
 
     if (empty($username) || empty($password)) {
-        $error = "Username dan password wajib diisi.";
+        $error = "Username/Email dan password wajib diisi.";
     } else {
-        $sql = "SELECT id, username, password, role FROM users WHERE username = ?";
+        // Check if the input is an email by looking for @ symbol
+        $is_email = strpos($username, '@') !== false;
+        
+        // Prepare the appropriate SQL query based on input type
+        if ($is_email) {
+            $sql = "SELECT id, username, email, password, role FROM users WHERE email = ?";
+        } else {
+            $sql = "SELECT id, username, email, password, role FROM users WHERE username = ?";
+        }
+        
         $stmt = null;
         $password_verified = false;
 
@@ -32,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 mysqli_stmt_store_result($stmt);
 
                 if (mysqli_stmt_num_rows($stmt) == 1) {
-                    mysqli_stmt_bind_result($stmt, $id, $username_db, $db_password, $role);
+                    mysqli_stmt_bind_result($stmt, $id, $username_db, $email_db, $db_password, $role);
                     if (mysqli_stmt_fetch($stmt)) {
                         $is_hashed = preg_match('/^\$2[axy]\$/', $db_password);
 
@@ -72,9 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         } else {
                             $error = "Password yang Anda masukkan salah.";
                         }
-                    }
-                } else {
-                    $error = "Username tidak ditemukan.";
+                    }                } else {
+                    $error = $is_email ? "Email tidak ditemukan." : "Username tidak ditemukan.";
                 }
             } else {
                 $error = "Oops! Terjadi kesalahan saat eksekusi query. Silakan coba lagi nanti.";
@@ -94,6 +102,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 if (isset($_GET['error'])) {
     $error = htmlspecialchars($_GET['error']);
+}
+
+// Check for Google login error
+if (isset($_SESSION['google_login_error'])) {
+    $error = $_SESSION['google_login_error'];
+    unset($_SESSION['google_login_error']);
 }
 ?>
 
@@ -454,9 +468,7 @@ if (isset($_GET['error'])) {
                                     <?php echo $error; ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
-                            <?php endif; ?>
-
-                            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                            <?php endif; ?>                            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                                 <div class="mb-3">
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-secondary">
@@ -464,7 +476,7 @@ if (isset($_GET['error'])) {
                                                 <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
                                             </svg>
                                         </span>
-                                        <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="Username" required autofocus>
+                                        <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="Username atau Email" required autofocus>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -482,12 +494,26 @@ if (isset($_GET['error'])) {
                                             </svg>
                                         </span>
                                     </div>
-                                </div>
-                                <div class="mb-4 text-end">
-                                    <small><a href="#" class="text-decoration-none text-secondary">Forgot password?</a></small>
-                                </div>
-                                <div class="d-grid gap-2">
+                                </div><div class="mb-4 text-end">
+                                    <small><a href="forgot_password.php?reset=new" class="text-decoration-none text-secondary">Forgot password?</a></small>
+                                </div>                                <div class="d-grid gap-2">
                                     <button class="btn btn-primary text-white py-2 rounded-pill fw-semibold" type="submit">LOGIN</button>
+                                </div>                                <div class="my-3 text-center">
+                                    <small class="text-muted">- Atau login dengan -</small>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <?php if (file_exists('vendor/autoload.php')): ?>
+                                    <a href="google_login.php" class="btn btn-outline-secondary py-2 rounded-pill">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo" style="height: 18px; margin-right: 8px;">
+                                        Login dengan Google
+                                    </a>
+                                    <?php else: ?>
+                                    <a href="google_login_simple.php" class="btn btn-outline-secondary py-2 rounded-pill">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo" style="height: 18px; margin-right: 8px;">
+                                        Login dengan Google
+                                    </a>
+                                    <?php endif; ?>
                                 </div>
 
                                 <p class="mt-4 mb-0 text-white-50 text-center small">&copy; Perpustakaan Muflih <?php echo date("Y"); ?></p>

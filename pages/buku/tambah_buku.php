@@ -29,9 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!filter_var($stok, FILTER_VALIDATE_INT) || $stok < 0) {
         $errors[] = "Stok harus berupa angka non-negatif.";
     }
-    
-    // Handle image upload
-    $gambar = null;
+      // Handle image upload
+    $gambar = null; // Default to null, system will use contoh.png if null
     if(isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
         $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
         $file_type = $_FILES['gambar']['type'];
@@ -43,8 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if($file_size > 2097152) { // 2MB
                 $errors[] = "Ukuran file tidak boleh lebih dari 2MB.";
             } else {
-                $file_name = time() . '_' . $_FILES['gambar']['name'];
+                // Generate unique filename to avoid overwriting
+                $file_extension = pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION);
+                $file_name = 'book_' . uniqid() . '_' . time() . '.' . $file_extension;
                 $upload_dir = '../../assets/book_images/';
+                
+                // Ensure directory exists
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                
                 $upload_path = $upload_dir . $file_name;
                 
                 if(!move_uploaded_file($_FILES['gambar']['tmp_name'], $upload_path)) {
@@ -54,25 +61,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
         }
-    }
-
-    if (empty($errors)) {
-        $sql = "INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok, gambar) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-        if ($stmt = mysqli_prepare($koneksi, $sql)) {
-            mysqli_stmt_bind_param($stmt, "sssssss", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $gambar);
-
-            if (mysqli_stmt_execute($stmt)) {
+    }    if (empty($errors)) {
+        // If no image was uploaded, don't include gambar in the SQL statement
+        if ($gambar === null) {
+            $sql = "INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok) VALUES (?, ?, ?, ?, ?, ?)";
+            
+            if ($stmt = mysqli_prepare($koneksi, $sql)) {
+                mysqli_stmt_bind_param($stmt, "sssssi", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok);
+                
+                if (mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+                    mysqli_close($koneksi);
+                    header("Location: list_buku.php?success=Buku berhasil ditambahkan.");
+                    exit();
+                } else {
+                    $errors[] = "Gagal menambahkan buku: " . mysqli_stmt_error($stmt);
+                }
                 mysqli_stmt_close($stmt);
-                mysqli_close($koneksi);
-                header("Location: list_buku.php?success=Buku berhasil ditambahkan.");
-                exit();
             } else {
-                $errors[] = "Gagal menambahkan buku: " . mysqli_stmt_error($stmt);
+                $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
             }
-            mysqli_stmt_close($stmt);
         } else {
-            $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
+            $sql = "INSERT INTO buku (judul, pengarang, penerbit, tahun_terbit, genre, stok, gambar) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            if ($stmt = mysqli_prepare($koneksi, $sql)) {
+                mysqli_stmt_bind_param($stmt, "sssssss", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $gambar);
+                
+                if (mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+                    mysqli_close($koneksi);
+                    header("Location: list_buku.php?success=Buku berhasil ditambahkan.");
+                    exit();
+                } else {
+                    $errors[] = "Gagal menambahkan buku: " . mysqli_stmt_error($stmt);
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
+            }
         }
     }
     mysqli_close($koneksi);
@@ -219,15 +245,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const imageInput = document.getElementById('gambar');
             const previewImage = document.getElementById('coverPreview');
+            const defaultImagePath = '../../assets/book_images/contoh.png';
             
             imageInput.addEventListener('change', function() {
                 if (this.files && this.files[0]) {
                     const reader = new FileReader();
+                    
+                    // Validate file size before preview (client-side validation)
+                    const fileSize = this.files[0].size / 1024 / 1024; // Convert to MB
+                    if (fileSize > 2) {
+                        alert('Ukuran file tidak boleh lebih dari 2MB');
+                        this.value = '';
+                        previewImage.src = defaultImagePath;
+                        return;
+                    }
+                    
+                    // Validate file type
+                    const fileType = this.files[0].type;
+                    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(fileType)) {
+                        alert('File harus berformat JPG, JPEG, atau PNG');
+                        this.value = '';
+                        previewImage.src = defaultImagePath;
+                        return;
+                    }
                     
                     reader.onload = function(e) {
                         previewImage.src = e.target.result;
@@ -235,11 +279,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     
                     reader.readAsDataURL(this.files[0]);
                 } else {
-                    previewImage.src = '../../assets/book_images/contoh.png';
+                    previewImage.src = defaultImagePath;
                 }
             });
         });
     </script>
 </body>
 </html>
-

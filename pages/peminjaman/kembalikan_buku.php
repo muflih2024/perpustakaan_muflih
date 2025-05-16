@@ -10,6 +10,21 @@ if ($_SESSION['role'] !== 'user') {
 
 $user_id = $_SESSION['user_id'];
 $peminjaman_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$buku_id = isset($_POST['buku_id']) ? (int)$_POST['buku_id'] : 0;
+
+// If we have a book_id but no peminjaman_id, try to find the peminjaman_id
+if (!$peminjaman_id && $buku_id) {
+    $sql_find_peminjaman = "SELECT id FROM peminjaman WHERE user_id = ? AND buku_id = ? AND status = 'dipinjam'";
+    if ($stmt_find = mysqli_prepare($koneksi, $sql_find_peminjaman)) {
+        mysqli_stmt_bind_param($stmt_find, "ii", $user_id, $buku_id);
+        mysqli_stmt_execute($stmt_find);
+        $result_find = mysqli_stmt_get_result($stmt_find);
+        if ($row_find = mysqli_fetch_assoc($result_find)) {
+            $peminjaman_id = $row_find['id'];
+        }
+        mysqli_stmt_close($stmt_find);
+    }
+}
 
 if (!$peminjaman_id) {
     header("Location: daftar_pinjaman.php?error=ID peminjaman tidak valid");

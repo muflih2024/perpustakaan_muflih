@@ -70,55 +70,95 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!filter_var($stok, FILTER_VALIDATE_INT) || $stok < 0) {
         $errors[] = "Stok harus berupa angka non-negatif.";
     }
-    
-    // Handle image upload
+      // Handle image upload or deletion
     $gambar = $current_gambar;
-    if(isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
+    
+    // Check if delete image option is selected
+    if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
+        // Delete old image if exists and not the default image
+        if (!empty($current_gambar)) {
+            $upload_dir = '../../assets/book_images/';
+            $old_image_path = $upload_dir . $current_gambar;
+            if (file_exists($old_image_path) && $current_gambar !== 'contoh.png') {
+                @unlink($old_image_path);
+            }
+        }
+        // Set gambar to null to use the default image
+        $gambar = null;
+    } 
+    // Check if a new image is uploaded
+    else if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
         $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
         $file_type = $_FILES['gambar']['type'];
         
-        if(!in_array($file_type, $allowed_types)) {
+        if (!in_array($file_type, $allowed_types)) {
             $errors[] = "File harus berformat JPG, JPEG, atau PNG.";
         } else {
             $file_size = $_FILES['gambar']['size'];
-            if($file_size > 2097152) { // 2MB
+            if ($file_size > 2097152) { // 2MB
                 $errors[] = "Ukuran file tidak boleh lebih dari 2MB.";
             } else {
-                $file_name = time() . '_' . $_FILES['gambar']['name'];
+                // Generate unique filename to avoid overwriting
+                $file_extension = pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION);
+                $file_name = 'book_' . uniqid() . '_' . time() . '.' . $file_extension;
                 $upload_dir = '../../assets/book_images/';
+                
+                // Ensure directory exists
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                
                 $upload_path = $upload_dir . $file_name;
                 
-                if(!move_uploaded_file($_FILES['gambar']['tmp_name'], $upload_path)) {
+                if (!move_uploaded_file($_FILES['gambar']['tmp_name'], $upload_path)) {
                     $errors[] = "Gagal mengupload gambar.";
                 } else {
                     // Delete old image if exists
-                    if(!empty($current_gambar)) {
+                    if (!empty($current_gambar)) {
                         $old_image_path = $upload_dir . $current_gambar;
-                        if(file_exists($old_image_path) && $current_gambar !== 'default-book.jpg') {
+                        if (file_exists($old_image_path) && $current_gambar !== 'contoh.png') {
                             @unlink($old_image_path);
                         }
                     }
                     $gambar = $file_name;
                 }
             }
-        }
-    }
-
+        }    }
+    
     if (empty($errors)) {
-        $sql = "UPDATE buku SET judul = ?, pengarang = ?, penerbit = ?, tahun_terbit = ?, genre = ?, stok = ?, gambar = ? WHERE id = ?";
-        if ($stmt = mysqli_prepare($koneksi, $sql)) {
-            mysqli_stmt_bind_param($stmt, "sssssssi", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $gambar, $book_id);
-            if (mysqli_stmt_execute($stmt)) {
+        // If user deleted the image, we need to update with NULL value
+        if (isset($_POST['delete_image']) && $_POST['delete_image'] == '1') {
+            $sql = "UPDATE buku SET judul = ?, pengarang = ?, penerbit = ?, tahun_terbit = ?, genre = ?, stok = ?, gambar = NULL WHERE id = ?";
+            if ($stmt = mysqli_prepare($koneksi, $sql)) {
+                mysqli_stmt_bind_param($stmt, "ssssssi", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $book_id);
+                if (mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+                    mysqli_close($koneksi);
+                    header("Location: list_buku.php?success=Buku berhasil diperbarui.");
+                    exit();
+                } else {
+                    $errors[] = "Gagal memperbarui buku: " . mysqli_stmt_error($stmt);
+                }
                 mysqli_stmt_close($stmt);
-                mysqli_close($koneksi);
-                header("Location: list_buku.php?success=Buku berhasil diperbarui.");
-                exit();
             } else {
-                $errors[] = "Gagal memperbarui buku: " . mysqli_stmt_error($stmt);
+                $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
             }
-            mysqli_stmt_close($stmt);
         } else {
-            $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
+            $sql = "UPDATE buku SET judul = ?, pengarang = ?, penerbit = ?, tahun_terbit = ?, genre = ?, stok = ?, gambar = ? WHERE id = ?";
+            if ($stmt = mysqli_prepare($koneksi, $sql)) {
+                mysqli_stmt_bind_param($stmt, "sssssssi", $judul, $pengarang, $penerbit, $tahun_terbit, $genre, $stok, $gambar, $book_id);
+                if (mysqli_stmt_execute($stmt)) {
+                    mysqli_stmt_close($stmt);
+                    mysqli_close($koneksi);
+                    header("Location: list_buku.php?success=Buku berhasil diperbarui.");
+                    exit();
+                } else {
+                    $errors[] = "Gagal memperbarui buku: " . mysqli_stmt_error($stmt);
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                $errors[] = "Gagal menyiapkan statement: " . mysqli_error($koneksi);
+            }
         }
     }
     mysqli_close($koneksi);
@@ -246,8 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="card-header">
                                 <h5 class="card-title mb-0">Gambar Sampul</h5>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3 text-center">
+                            <div class="card-body">                                <div class="mb-3 text-center">
                                     <img id="coverPreview" src="<?php echo !empty($gambar) ? '../../assets/book_images/'.$gambar : '../../assets/book_images/contoh.png'; ?>" class="img-fluid img-preview rounded shadow-sm" alt="Preview Sampul">
                                 </div>
                                 <div class="mb-3">
@@ -255,6 +294,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     <input type="file" class="form-control" id="gambar" name="gambar" accept=".jpg,.jpeg,.png">
                                     <div class="form-text">Format: JPG, JPEG, PNG. Maks 2MB.</div>
                                 </div>
+                                <?php if(!empty($gambar)): ?>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="delete_image" name="delete_image" value="1">
+                                    <label class="form-check-label" for="delete_image">Hapus gambar saat ini</label>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -268,27 +313,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const imageInput = document.getElementById('gambar');
             const previewImage = document.getElementById('coverPreview');
+            const deleteCheckbox = document.getElementById('delete_image');
+            const currentImagePath = '<?php echo !empty($gambar) ? "../../assets/book_images/{$gambar}" : "../../assets/book_images/contoh.png"; ?>';
+            const defaultImagePath = '../../assets/book_images/contoh.png';
             
+            // Update image preview when file input changes
             imageInput.addEventListener('change', function() {
                 if (this.files && this.files[0]) {
                     const reader = new FileReader();
                     
                     reader.onload = function(e) {
                         previewImage.src = e.target.result;
+                        // Uncheck delete checkbox if user selected a new image
+                        if(deleteCheckbox) {
+                            deleteCheckbox.checked = false;
+                        }
                     };
                     
                     reader.readAsDataURL(this.files[0]);
                 } else {
-                    previewImage.src = '../../assets/book_images/contoh.png';
+                    previewImage.src = currentImagePath;
                 }
             });
+            
+            // Handle delete checkbox 
+            if(deleteCheckbox) {
+                deleteCheckbox.addEventListener('change', function() {
+                    if(this.checked) {
+                        // Show default image when delete is checked
+                        previewImage.src = defaultImagePath;
+                        // Clear the file input
+                        imageInput.value = '';
+                    } else {
+                        // Restore current image if unchecked
+                        previewImage.src = currentImagePath;
+                    }
+                });
+            }
         });
     </script>
 </body>
 </html>
-

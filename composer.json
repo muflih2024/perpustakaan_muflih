@@ -1,0 +1,7 @@
+{
+    "name": "perpustakaan/muflih",
+    "description": "Sistem Informasi Perpustakaan Muflih",
+    "require": {
+        "phpmailer/phpmailer": "^6.10"
+    }
+}

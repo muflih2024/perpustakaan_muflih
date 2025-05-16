@@ -494,9 +494,7 @@ if (isset($_SESSION['google_login_error'])) {
                                             </svg>
                                         </span>
                                     </div>
-                                </div><div class="mb-4 text-end">
-                                    <small><a href="forgot_password.php?reset=new" class="text-decoration-none text-secondary">Forgot password?</a></small>
-                                </div>                                <div class="d-grid gap-2">
+                                </div>                               <div class="d-grid gap-2">
                                     <button class="btn btn-primary text-white py-2 rounded-pill fw-semibold" type="submit">LOGIN</button>
                                 </div>                                <div class="my-3 text-center">
                                     <small class="text-muted">- Atau login dengan -</small>
@@ -514,6 +512,10 @@ if (isset($_SESSION['google_login_error'])) {
                                         Login dengan Google
                                     </a>
                                     <?php endif; ?>
+                                </div>
+
+                                <div class="text-center mt-3">
+                                    <a href="forgot_password.php">Lupa password?</a>
                                 </div>
 
                                 <p class="mt-4 mb-0 text-white-50 text-center small">&copy; Perpustakaan Muflih <?php echo date("Y"); ?></p>

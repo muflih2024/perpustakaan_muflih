@@ -13,6 +13,11 @@ if (isset($_SESSION['user_id'])) {
 
 $error = '';
 
+// Cek jika ada error dari URL
+if (isset($_GET['error'])) {
+    $error = htmlspecialchars($_GET['error']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
@@ -457,8 +462,7 @@ if (isset($_SESSION['google_login_error'])) {
             <div class="col-md-6 d-flex align-items-center justify-content-center p-4 p-md-5">
                 <div class="w-75">
                     <div class="card shadow-sm rounded-3 border-0">
-                        <div class="card-body p-4 p-md-5">
-                            <div class="text-center mb-4">
+                        <div class="card-body p-4 p-md-5">                            <div class="text-center mb-4">
                                 <img class="mb-3" src="assets/logosmk.png" alt="Logo SMK" width="80" height="auto">
                                 <h2 class="fw-semibold text-primary mb-4">USER LOGIN</h2>
                             </div>
@@ -468,7 +472,14 @@ if (isset($_SESSION['google_login_error'])) {
                                     <?php echo $error; ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
-                            <?php endif; ?>                            <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
+                            <?php endif; ?>
+                            
+                            <?php if (isset($_SESSION['error'])): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            <?php endif; ?><form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                                 <div class="mb-3">
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-secondary">
@@ -503,19 +514,22 @@ if (isset($_SESSION['google_login_error'])) {
                                 <div class="d-grid gap-2">
                                     <?php if (file_exists('vendor/autoload.php')): ?>
                                     <a href="google_login.php" class="btn btn-outline-secondary py-2 rounded-pill">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo" style="height: 18px; margin-right: 8px;">
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKDJ2Ng40CF4yr4q89wueOVHuQGwEWqq3oMg&s" alt="Google logo" style="height: 18px; margin-right: 8px;">
                                         Login dengan Google
                                     </a>
                                     <?php else: ?>
-                                    <a href="google_login_simple.php" class="btn btn-outline-secondary py-2 rounded-pill">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google logo" style="height: 18px; margin-right: 8px;">
-                                        Login dengan Google
-                                    </a>
+                                    <button class="btn btn-outline-secondary py-2 rounded-pill" disabled>
+                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKDJ2Ng40CF4yr4q89wueOVHuQGwEWqq3oMg&s" alt="Google logo" style="height: 18px; margin-right: 8px;">
+                                        Login dengan Google (Tidak tersedia)
+                                    </button>
                                     <?php endif; ?>
                                 </div>
 
                                 <div class="text-center mt-3">
                                     <a href="forgot_password.php">Lupa password?</a>
+                                </div>
+                                <div class="text-center mt-2">
+                                    Belum punya akun? <a href="register.php">Daftar di sini</a>
                                 </div>
 
                                 <p class="mt-4 mb-0 text-white-50 text-center small">&copy; Perpustakaan Muflih <?php echo date("Y"); ?></p>

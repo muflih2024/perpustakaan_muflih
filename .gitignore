@@ -1,0 +1,33 @@
+# Environment variables dan file konfigurasi lokal
+.env
+*.env
+
+# File konfigurasi yang berisi kredensial
+# Buat file contoh seperti config.example.php untuk repository
+
+# Vendor files
+/vendor/
+
+# File database local
+*.sqlite
+*.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db

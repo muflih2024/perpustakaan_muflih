@@ -15,6 +15,9 @@ $client->setClientSecret($clientSecret);
 $client->setRedirectUri($redirectUri);
 $client->addScope($scopes);
 
+// Set parameter tambahan untuk selalu menampilkan layar pemilihan akun
+$client->setPrompt('select_account');
+
 // Mendapatkan URL login Google
 $authUrl = $client->createAuthUrl();
 

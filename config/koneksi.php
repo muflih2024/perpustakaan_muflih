@@ -16,22 +16,28 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-function check_login($required_role = null) {
-    if (!isset($_SESSION['user_id'])) {
-        $script_path = $_SERVER['SCRIPT_NAME'];
-        // Determine the correct path to login.php using BASE_URL
-        header("Location: " . BASE_URL . "auth/login.php?error=Silakan login terlebih dahulu.");
-        exit();
-    }
-    if ($required_role && $_SESSION['role'] !== $required_role) {
-        // Determine the correct path to dashboard.php using BASE_URL
-        header("Location: " . BASE_URL . "dashboard.php?error=Akses ditolak.");
-        exit();
+// Gunakan !function_exists untuk mencegah redeclaration error
+if (!function_exists('check_login')) {
+    function check_login($required_role = null) {
+        if (!isset($_SESSION['user_id'])) {
+            $script_path = $_SERVER['SCRIPT_NAME'];
+            // Determine the correct path to login.php using BASE_URL
+            header("Location: " . BASE_URL . "auth/login.php?error=Silakan login terlebih dahulu.");
+            exit();
+        }
+        if ($required_role && $_SESSION['role'] !== $required_role) {
+            // Determine the correct path to dashboard.php using BASE_URL
+            header("Location: " . BASE_URL . "dashboard.php?error=Akses ditolak.");
+            exit();
+        }
     }
 }
 
-function sanitize($data) {
-    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+// Juga mencegah redeclaration untuk function sanitize
+if (!function_exists('sanitize')) {
+    function sanitize($data) {
+        return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+    }
 }
 ?>
 

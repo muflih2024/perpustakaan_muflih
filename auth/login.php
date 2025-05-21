@@ -120,9 +120,8 @@ if (isset($_SESSION['google_login_error'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Perpustakaan Muflih</title>
-    <link href="assets/bootstrap.css/css/theme.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Login - Perpustakaan Muflih</title>
+    <link href="../assets/bootstrap.css/css/theme.css" rel="stylesheet">
     <style>
         /* Background and day-night elements */
         .background-layer {
@@ -463,7 +462,7 @@ if (isset($_SESSION['google_login_error'])) {
                 <div class="w-75">
                     <div class="card shadow-sm rounded-3 border-0">
                         <div class="card-body p-4 p-md-5">                            <div class="text-center mb-4">
-                                <img class="mb-3" src="assets/logosmk.png" alt="Logo SMK" width="80" height="auto">
+                                <img class="mb-3" src="../assets/logosmk.png" alt="Logo SMK" width="80" height="auto">
                                 <h2 class="fw-semibold text-primary mb-4">USER LOGIN</h2>
                             </div>
 
@@ -506,13 +505,11 @@ if (isset($_SESSION['google_login_error'])) {
                                         </span>
                                     </div>
                                 </div>                               <div class="d-grid gap-2">
-                                    <button class="btn btn-primary text-white py-2 rounded-pill fw-semibold" type="submit">LOGIN</button>
-                                </div>                                <div class="my-3 text-center">
+                                    <button class="btn btn-primary text-white py-2 rounded-pill fw-semibold" type="submit">LOGIN</button>                                </div>                                <div class="my-3 text-center">
                                     <small class="text-muted">- Atau login dengan -</small>
                                 </div>
-                                
-                                <div class="d-grid gap-2">
-                                    <?php if (file_exists('vendor/autoload.php')): ?>
+                                  <div class="d-grid gap-2">
+                                    <?php if (file_exists('../vendor/autoload.php')): ?>
                                     <a href="google_login.php" class="btn btn-outline-secondary py-2 rounded-pill">
                                         <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKDJ2Ng40CF4yr4q89wueOVHuQGwEWqq3oMg&s" alt="Google logo" style="height: 18px; margin-right: 8px;">
                                         Login dengan Google
@@ -538,10 +535,9 @@ if (isset($_SESSION['google_login_error'])) {
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 
-    <script src="assets/bootstrap.js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const backgroundLayer = document.querySelector('.background-layer');

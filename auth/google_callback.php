@@ -3,10 +3,10 @@
 // Menangani callback dari autentikasi Google
 
 // Include file konfigurasi
-require_once 'config/env_loader.php';
-require_once 'config/koneksi.php';
-require_once 'config/google_config.php';
-require_once 'vendor/autoload.php';
+require_once '../config/env_loader.php';
+require_once '../config/koneksi.php';
+require_once '../config/google_config.php';
+require_once '../vendor/autoload.php';
 
 // Membuat objek Google Client
 $client = new Google_Client();
@@ -48,7 +48,7 @@ if (isset($_GET['code'])) {
         }
         
         // Redirect ke dashboard
-        header("Location: dashboard.php");
+        header("Location: ../dashboard.php");
         exit();
     } else {
         // Jika pengguna belum terdaftar, tambahkan ke database
@@ -70,16 +70,14 @@ if (isset($_GET['code'])) {
             $_SESSION['login_method'] = 'google';
             
             // Redirect ke dashboard
-            header("Location: dashboard.php");
-            exit();
-        } else {
-            // Gagal menyimpan ke database
-            header("Location: login.php?error=Gagal menyimpan data pengguna");
+            header("Location: ../dashboard.php");
+            exit();        } else {            // Gagal menyimpan ke database
+            header("Location: ./login.php?error=Gagal menyimpan data pengguna");
             exit();
         }
     }
 } else {
     // Jika tidak ada kode autentikasi, redirect ke login
-    header("Location: login.php?error=Autentikasi Google gagal");
+    header("Location: ./login.php?error=Autentikasi Google gagal");
     exit();
 }

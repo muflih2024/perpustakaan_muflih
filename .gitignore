@@ -1,12 +1,16 @@
 # Environment variables dan file konfigurasi lokal
 .env
 *.env
+.env.*
+!.env.example
 
-# File konfigurasi yang berisi kredensial
-# Buat file contoh seperti config.example.php untuk repository
-
-# Vendor files
+# Dependency directories
 /vendor/
+/node_modules/
+
+# Composer files
+composer.phar
+composer.lock
 
 # File database local
 *.sqlite
@@ -31,3 +35,15 @@
 Icon?
 ehthumbs.db
 Thumbs.db
+
+# Folder untuk file besar
+/assets/bootstrap.css/
+/assets/bootstrap.js/
+/assets/book_images/large/
+
+# File SQL (pindahkan ke folder sql)
+# Tetapi file schema struktur tetap dimasukkan
+/sql/backup/
+/sql/data/
+*.sql
+!schema.sql

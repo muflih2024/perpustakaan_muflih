@@ -4,6 +4,12 @@
 .env.*
 !.env.example
 
+# File konfigurasi dengan kredensial sensitif
+# JANGAN HAPUS FILE-FILE INI, HANYA EXCLUDE DARI GIT
+/config/google_config.php
+/config/credentials.php
+/config/api_keys.php
+
 # Dependency directories
 /vendor/
 /node_modules/

@@ -54,6 +54,15 @@ Dokumen ini menjelaskan bagaimana mengatur dan mengkonfigurasi fitur login denga
    SetEnv GOOGLE_CLIENT_SECRET your_client_secret_here
    ```
 
+4. Menggunakan file contoh (example files):
+   - Copy file contoh ke file aktual:
+   ```
+   copy auth\google_login.example.php auth\google_login.php
+   copy auth\google_callback.example.php auth\google_callback.php
+   ```
+   - File contoh tidak berisi kredensial sensitif dan aman untuk di-commit ke repository
+   - File aktual (`google_login.php` dan `google_callback.php`) sudah ditambahkan ke `.gitignore`
+
 ## Keamanan dan Praktik Terbaik
 1. JANGAN PERNAH menyimpan kredensial OAuth langsung di kode
 2. SELALU gunakan environment variables atau file `.env` yang ditambahkan ke `.gitignore`

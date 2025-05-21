@@ -9,6 +9,13 @@
 /config/google_config.php
 /config/credentials.php
 /config/api_keys.php
+/auth/google_login.php
+/auth/google_callback.php
+
+# Pastikan file example tetap dicommit
+!auth/*.example.php
+!config/*.example.php
+
 
 # Dependency directories
 /vendor/

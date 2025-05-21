@@ -263,7 +263,7 @@ if ($stmt = mysqli_prepare($koneksi, $sql)) {
         <div class="d-flex align-items-center">
             <span class="me-3">Selamat Datang, <?php echo $username; ?></span>
             <span class="badge bg-<?php echo ($role === 'admin' ? 'danger' : 'info'); ?> me-3"><?php echo ucfirst($role); ?></span>
-            <a href="logout.php" class="btn btn-outline-danger btn-sm">
+            <a href="<?php echo BASE_URL; ?>auth/logout.php" class="btn btn-outline-danger btn-sm">
                 <i class="bi bi-box-arrow-right me-1"></i> Logout
             </a>
         </div>
@@ -298,7 +298,7 @@ if ($stmt = mysqli_prepare($koneksi, $sql)) {
             </li>
             <?php endif; ?>
             <li class="nav-item mt-auto">
-                <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
+                <a class="nav-link" href="<?php echo BASE_URL; ?>auth/logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
             </li>
         </ul>
     </nav>

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/env_loader.php';
+
 $host = 'localhost';
 $db_user = 'root';
 $db_pass = '';
@@ -17,20 +19,13 @@ if (session_status() == PHP_SESSION_NONE) {
 function check_login($required_role = null) {
     if (!isset($_SESSION['user_id'])) {
         $script_path = $_SERVER['SCRIPT_NAME'];
-        if (strpos($script_path, '/pages/') !== false) {
-            header("Location: ../../login.php?error=Silakan login terlebih dahulu.");
-        } else {
-            header("Location: login.php?error=Silakan login terlebih dahulu.");
-        }
+        // Determine the correct path to login.php using BASE_URL
+        header("Location: " . BASE_URL . "auth/login.php?error=Silakan login terlebih dahulu.");
         exit();
     }
     if ($required_role && $_SESSION['role'] !== $required_role) {
-        $script_path = $_SERVER['SCRIPT_NAME'];
-        if (strpos($script_path, '/pages/') !== false) {
-            header("Location: ../../dashboard.php?error=Akses ditolak.");
-        } else {
-            header("Location: dashboard.php?error=Akses ditolak.");
-        }
+        // Determine the correct path to dashboard.php using BASE_URL
+        header("Location: " . BASE_URL . "dashboard.php?error=Akses ditolak.");
         exit();
     }
 }

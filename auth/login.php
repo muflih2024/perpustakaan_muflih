@@ -1,5 +1,5 @@
 <?php
-require_once 'config/koneksi.php';
+require_once '../config/koneksi.php'; // Adjusted path to koneksi.php
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -7,7 +7,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
+    header("Location: " . BASE_URL . "dashboard.php");
     exit();
 }
 
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                             mysqli_stmt_close($stmt);
                             mysqli_close($koneksi);
-                            header("Location: dashboard.php");
+                            header("Location: " . BASE_URL . "dashboard.php");
                             exit();
                         } else {
                             $error = "Password yang Anda masukkan salah.";

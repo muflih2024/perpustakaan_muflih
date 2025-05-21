@@ -44,3 +44,6 @@ $env_path = __DIR__ . '/../.env';
 if (file_exists($env_path)) {
     load_env($env_path);
 }
+
+// Define the base URL
+define('BASE_URL', 'http://localhost/perpustakaan_muflih/'); // Adjust if your domain or subfolder is different

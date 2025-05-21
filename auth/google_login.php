@@ -13,7 +13,9 @@ $client = new Google_Client();
 $client->setClientId($clientID);
 $client->setClientSecret($clientSecret);
 $client->setRedirectUri($redirectUri);
-$client->addScope($scopes);
+foreach($scopes as $scope) {
+    $client->addScope($scope);
+}
 
 // Set parameter tambahan untuk selalu menampilkan layar pemilihan akun
 $client->setPrompt('select_account');

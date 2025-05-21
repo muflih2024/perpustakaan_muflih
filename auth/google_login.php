@@ -9,6 +9,7 @@ require_once '../config/google_config.php';
 require_once '../vendor/autoload.php';
 
 // Membuat objek Google Client
+global $clientID, $clientSecret, $redirectUri, $scopes;
 $client = new Google_Client();
 $client->setClientId($clientID);
 $client->setClientSecret($clientSecret);

@@ -520,10 +520,8 @@ if (isset($_SESSION['google_login_error'])) {
                                         Login dengan Google (Tidak tersedia)
                                     </button>
                                     <?php endif; ?>
-                                </div>
-
-                                <div class="text-center mt-3">
-                                    <a href="forgot_password.php">Lupa password?</a>
+                                </div>                                <div class="text-center mt-3">
+                                    <a href="../forgetpw/index.php">Lupa password?</a>
                                 </div>
                                 <div class="text-center mt-2">
                                     Belum punya akun? <a href="register.php">Daftar di sini</a>

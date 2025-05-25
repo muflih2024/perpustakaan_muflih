@@ -1,28 +1,51 @@
 <?php
 require_once 'config/koneksi.php';
-check_login();
 
-$username = sanitize($_SESSION['username']);
-$role = sanitize($_SESSION['role']);
-$user_id = $_SESSION['user_id']; // Get user_id for checking borrowed books
-
-$error_message = '';
-if (isset($_GET['error'])) {
-    $error_message = sanitize($_GET['error']);
+// Pada Vercel, kita buat konten demo
+if (is_vercel_env()) {
+    // Kita skip check_login untuk demo di Vercel
+    
+    // Demo data
+    $username = "Demo User";
+    $role = "admin";
+    $user_id = 1;
+    
+    // Demo messages
+    $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
+    $success_message = isset($_GET['success']) ? sanitize($_GET['success']) : '';
+    
+    // Skip database query - we'll use demo data
+    $limit = 12;
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $page = max(1, $page); 
+    $offset = 0;
+    $search = isset($_GET['search']) ? $_GET['search'] : '';
+} else {
+    // Normal flow for local environment
+    check_login();
+    
+    $username = sanitize($_SESSION['username']);
+    $role = sanitize($_SESSION['role']);
+    $user_id = $_SESSION['user_id']; // Get user_id for checking borrowed books
+    
+    $error_message = '';
+    if (isset($_GET['error'])) {
+        $error_message = sanitize($_GET['error']);
+    }
+    
+    $success_message = '';
+    if (isset($_GET['success'])) {
+        $success_message = sanitize($_GET['success']);
+    }
+    
+    // Load books for both admin and user
+    $limit = 12; // Show more books on dashboard
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    $page = max(1, $page);
+    $offset = ($page - 1) * $limit;
+    
+    $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 }
-
-$success_message = '';
-if (isset($_GET['success'])) {
-    $success_message = sanitize($_GET['success']);
-}
-
-// Load books for both admin and user
-$limit = 12; // Show more books on dashboard
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$page = max(1, $page);
-$offset = ($page - 1) * $limit;
-
-$search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
 
 $sql_count = "SELECT COUNT(*) as total FROM buku";
 if (!empty($search)) {

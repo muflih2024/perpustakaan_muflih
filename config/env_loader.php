@@ -46,4 +46,9 @@ if (file_exists($env_path)) {
 }
 
 // Define the base URL
-define('BASE_URL', 'http://localhost/perpustakaan_muflih/'); // Adjust if your domain or subfolder is different
+// Automatically detect if running on Vercel or locally
+if (isset($_ENV['VERCEL_ENV']) || (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'vercel.app') !== false)) {
+    define('BASE_URL', $_ENV['VERCEL_BASE_URL'] ?? 'https://perpustakaan-muflih.vercel.app/');
+} else {
+    define('BASE_URL', $_ENV['LOCAL_BASE_URL'] ?? 'http://localhost/perpustakaan_muflih/');
+}

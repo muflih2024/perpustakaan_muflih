@@ -1,0 +1,55 @@
+# Ignore vendor directory except for required autoload files
+vendor/
+!vendor/autoload.php
+!vendor/composer/autoload_real.php
+!vendor/composer/ClassLoader.php
+vendor/**/test/
+vendor/**/tests/
+vendor/**/Tests/
+vendor/**/docs/
+vendor/**/doc/
+vendor/**/documentation/
+vendor/**/examples/
+vendor/**/example/
+vendor/**/.git/
+vendor/**/.*
+vendor/**/*.md
+vendor/**/*.txt
+vendor/**/LICENSE
+vendor/**/CHANGELOG*
+vendor/**/README*
+vendor/**/CONTRIBUTING*
+vendor/**/SECURITY*
+vendor/**/UPGRADE*
+
+# Logs, temp files, etc
+logs/
+*.log
+tmp/
+.git/
+.github/
+.vscode/
+.idea/
+
+# SQL files not needed in production
+sql/
+*.sql
+
+# Editor & env files
+.DS_Store
+.editorconfig
+.env*
+!.env.example
+*.swp
+*.swo
+
+# Dev files
+node_modules/
+.gitignore
+.phpunit*
+composer.lock
+package-lock.json
+phpunit*
+*.tgz
+*.zip
+*.tar.gz

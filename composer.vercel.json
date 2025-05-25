@@ -1,0 +1,14 @@
+{
+    "name": "perpustakaan_muflih/app",
+    "description": "Sistem Informasi Perpustakaan Muflih - Vercel Version",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.8",
+        "google/apiclient": "2.12.1"
+    },
+    "config": {
+        "platform": {
+            "php": "8.0"
+        }
+    }
+}

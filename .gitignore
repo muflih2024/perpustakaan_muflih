@@ -3,6 +3,13 @@
 *.env
 .env.*
 !.env.example
+!.env.vercel.example
+.vercel
+
+# Vercel build output
+.vercel/
+.now/
+.next/
 
 # File konfigurasi dengan kredensial sensitif
 # JANGAN HAPUS FILE-FILE INI, HANYA EXCLUDE DARI GIT
@@ -31,6 +38,7 @@ composer.lock
 
 # Log files
 *.log
+/logs/
 
 # Temporary files
 *.tmp

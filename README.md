@@ -63,6 +63,22 @@ Perpustakaan Muflih adalah sistem informasi perpustakaan untuk pengelolaan buku 
 - jQuery
 - PHPMailer (untuk pengiriman email)
 
+## Deployment ke Vercel
+
+Untuk informasi lengkap tentang deployment ke Vercel, baca panduan di [docs/VERCEL_DEPLOYMENT.md](./docs/VERCEL_DEPLOYMENT.md).
+
+### Langkah Singkat
+1. Salin `.env.vercel.example` dan terapkan di dashboard Vercel sebagai environment variables
+2. Pastikan database eksternal sudah disiapkan (PlanetScale, Railway, dll)
+3. Jalankan deployment menggunakan Vercel CLI atau hubungkan dengan repositori GitHub
+4. Perbarui URL redirect di Google Cloud Console untuk OAuth
+
+## Catatan Migrasi dari Google App Engine
+Aplikasi ini sebelumnya dikonfigurasi untuk Google App Engine, namun sekarang telah dimigrasi ke Vercel deployment karena:
+- Deployment dan konfigurasi lebih sederhana
+- Integrasi yang lebih baik dengan Git
+- Opsi database yang lebih fleksibel
+
 ## Kontributor
 
 - Muflih (Developer)

@@ -1,0 +1,12 @@
+{
+  "name": "perpustakaan-muflih",
+  "version": "1.0.0",
+  "description": "Sistem Perpustakaan Muflih",
+  "scripts": {
+    "vercel-prebuild": "php vercel_prebuild.php",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

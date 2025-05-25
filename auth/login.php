@@ -5,7 +5,6 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-
 if (isset($_SESSION['user_id'])) {
     header("Location: " . BASE_URL . "dashboard.php");
     exit();
@@ -18,7 +17,19 @@ if (isset($_GET['error'])) {
     $error = htmlspecialchars($_GET['error']);
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Handle Vercel environment login
+if (is_vercel_env() && $_SERVER['REQUEST_METHOD'] == 'POST') {
+    // On Vercel, create a demo session
+    $_SESSION['user_id'] = 1;
+    $_SESSION['username'] = 'demo_user';
+    $_SESSION['email'] = 'demo@example.com';
+    $_SESSION['role'] = 'admin';
+    
+    // Redirect to dashboard
+    header("Location: " . BASE_URL . "dashboard.php");
+    exit();
+} elseif ($_SERVER['REQUEST_METHOD'] == 'POST' && !is_vercel_env()) {
+    // Regular login process for local environment
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 

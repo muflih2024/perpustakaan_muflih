@@ -3,15 +3,23 @@
   "framework": null,
   "functions": {
     "api/**/*.php": { "runtime": "vercel-php@0.7.1" },
-    "auth/**/*.php": { "runtime": "vercel-php@0.7.1" },
-    "pages/**/*.php": { "runtime": "vercel-php@0.7.1" },
-    "forgetpw/**/*.php": { "runtime": "vercel-php@0.7.1" },
     "*.php": { "runtime": "vercel-php@0.7.1" }
-  },
-  "routes": [
+  },  "routes": [
     {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
+    },
+    {
+      "src": "/auth/(.*)",
+      "dest": "/api/_router.php"
+    },
+    {
+      "src": "/pages/(.*)",
+      "dest": "/api/_router.php"
+    },
+    {
+      "src": "/forgetpw/(.*)",
+      "dest": "/api/_router.php"
     },
     {
       "src": "/(.*)\\.php",

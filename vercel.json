@@ -1,12 +1,30 @@
 {
   "version": 2,
+  "framework": null,
   "functions": {
-    "api/_router.php": {
-      "runtime": "vercel-php@0.7.1"
-    }
+    "api/**/*.php": { "runtime": "vercel-php@0.7.1" },
+    "auth/**/*.php": { "runtime": "vercel-php@0.7.1" },
+    "pages/**/*.php": { "runtime": "vercel-php@0.7.1" },
+    "forgetpw/**/*.php": { "runtime": "vercel-php@0.7.1" },
+    "*.php": { "runtime": "vercel-php@0.7.1" }
   },
   "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/(.*)", "dest": "/api/_router.php" }
-  ]
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)\\.php",
+      "dest": "/$1.php"
+    },
+    {
+      "src": "/",
+      "dest": "/index.php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "VERCEL_PHP_DEVELOPMENT": "0"
+  }
 }

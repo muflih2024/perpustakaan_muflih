@@ -3,7 +3,13 @@
     "description": "Sistem Informasi Perpustakaan Muflih",
     "type": "project",
     "require": {
+        "php": ">=8.0",
         "phpmailer/phpmailer": "^6.8",
         "google/apiclient": "2.12.1"
+    },
+    "config": {
+        "platform": {
+            "php": "8.0"
+        }
     }
 }

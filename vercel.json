@@ -1,12 +1,12 @@
 {
   "version": 2,
   "functions": {
-    "api/index.php": {
+    "api/_router.php": {
       "runtime": "vercel-php@0.7.1"
     }
   },
   "routes": [
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/(.*)", "dest": "/api/index.php" }
+    { "src": "/(.*)", "dest": "/api/_router.php" }
   ]
 }

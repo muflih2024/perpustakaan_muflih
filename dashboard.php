@@ -1,24 +1,41 @@
 <?php
-require_once 'config/koneksi.php';
+require_once __DIR__ . '/config/koneksi.php';
 
-// Pada Vercel, kita buat konten demo
+// Include helpers for Vercel if running on Vercel
+if ($is_vercel && file_exists(__DIR__ . '/api/helpers.php')) {
+    require_once __DIR__ . '/api/helpers.php';
+}
+
+// Define is_vercel_env() function if it doesn't exist
+if (!function_exists('is_vercel_env')) {
+    function is_vercel_env() {
+        return getenv('VERCEL') === '1';
+    }
+}
+
+// Pada Vercel, kita mendukung koneksi database sepenuhnya
 if (is_vercel_env()) {
-    // Kita skip check_login untuk demo di Vercel
+    // Coba gunakan login reguler di Vercel seperti lokal
+    if (isset($_SESSION['user_id'])) {
+        $user_id = $_SESSION['user_id'];
+        $username = isset($_SESSION['username']) ? sanitize($_SESSION['username']) : "User"; 
+        $role = isset($_SESSION['role']) ? sanitize($_SESSION['role']) : "user";
+    } else {
+        // Fallback ke demo jika tidak login
+        $username = "Demo User";
+        $role = "admin";
+        $user_id = 1;
+    }
     
-    // Demo data
-    $username = "Demo User";
-    $role = "admin";
-    $user_id = 1;
-    
-    // Demo messages
+    // Messages handling
     $error_message = isset($_GET['error']) ? sanitize($_GET['error']) : '';
     $success_message = isset($_GET['success']) ? sanitize($_GET['success']) : '';
     
-    // Skip database query - we'll use demo data
+    // Pagination setup
     $limit = 12;
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $page = max(1, $page); 
-    $offset = 0;
+    $offset = ($page - 1) * $limit;
     $search = isset($_GET['search']) ? $_GET['search'] : '';
 } else {
     // Normal flow for local environment
@@ -44,50 +61,99 @@ if (is_vercel_env()) {
     $page = max(1, $page);
     $offset = ($page - 1) * $limit;
     
-    $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($koneksi, $_GET['search'])) : '';
+    // Sanitize search term according to environment
+    if ($is_vercel && !empty($_GET['search'])) {
+        $search = trim($_GET['search']);
+    } else {
+        $search = isset($_GET['search']) ? trim(mysqli_real_escape_string($mysqli_connection, $_GET['search'])) : '';
+    }
 }
 
-$sql_count = "SELECT COUNT(*) as total FROM buku";
+// SQL query for counting books - compatible with both MySQL and PostgreSQL
+$mysql_count = "SELECT COUNT(*) as total FROM buku";
+$pgsql_count = "SELECT COUNT(*) as total FROM buku";
+$params = [];
+
 if (!empty($search)) {
-    $sql_count .= " WHERE judul LIKE ?";
+    $mysql_count .= " WHERE judul LIKE ?";
+    $pgsql_count .= " WHERE judul LIKE ?";
+    $params[] = "%{$search}%";
 }
 
 $total_books = 0;
-if ($stmt_count = mysqli_prepare($koneksi, $sql_count)) {
-    if (!empty($search)) {
-        $search_param = "%{$search}%";
-        mysqli_stmt_bind_param($stmt_count, "s", $search_param);
-    }
-    mysqli_stmt_execute($stmt_count);
-    $result_count = mysqli_stmt_get_result($stmt_count);
-    if ($row_count = mysqli_fetch_assoc($result_count)) {
+
+if ($is_vercel) {
+    // PostgreSQL (PDO) approach for Vercel
+    try {
+        $stmt_count = $pdo_connection->prepare($pgsql_count);
+        $stmt_count->execute($params);
+        $row_count = $stmt_count->fetch(PDO::FETCH_ASSOC);
         $total_books = $row_count['total'];
+    } catch (PDOException $e) {
+        error_log("[DASHBOARD] PDO Count Error: " . $e->getMessage());
     }
-    mysqli_stmt_close($stmt_count);
+} else {
+    // MySQL approach for local
+    if ($stmt_count = mysqli_prepare($mysqli_connection, $mysql_count)) {
+        if (!empty($search)) {
+            $search_param = "%{$search}%";
+            mysqli_stmt_bind_param($stmt_count, "s", $search_param);
+        }
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        if ($row_count = mysqli_fetch_assoc($result_count)) {
+            $total_books = $row_count['total'];
+        }
+        mysqli_stmt_close($stmt_count);
+    }
 }
 
 $total_pages = ceil($total_books / $limit);
 $page = min($page, max(1, $total_pages));
 $offset = ($page - 1) * $limit;
 
-$sql = "SELECT * FROM buku";
+// SQL for retrieving books - compatible with both MySQL and PostgreSQL
+$mysql_query = "SELECT * FROM buku";
+$pgsql_query = "SELECT * FROM buku";
+$query_params = [];
+
 if (!empty($search)) {
-    $sql .= " WHERE judul LIKE ?";
+    $mysql_query .= " WHERE judul LIKE ?";
+    $pgsql_query .= " WHERE judul LIKE ?";
+    $query_params[] = "%{$search}%";
 }
-$sql .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
+
+$mysql_query .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
+$pgsql_query .= " ORDER BY judul ASC LIMIT ? OFFSET ?";
+$query_params[] = $limit;
+$query_params[] = $offset;
 
 $books = [];
-if ($stmt = mysqli_prepare($koneksi, $sql)) {
-    if (!empty($search)) {
-        $search_param = "%{$search}%";
-        mysqli_stmt_bind_param($stmt, "sii", $search_param, $limit, $offset);
-    } else {
-        mysqli_stmt_bind_param($stmt, "ii", $limit, $offset);
+
+if ($is_vercel) {
+    // PostgreSQL (PDO) approach for Vercel
+    try {
+        $stmt = $pdo_connection->prepare($pgsql_query);
+        $stmt->execute($query_params);
+        $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("[DASHBOARD] PDO Query Error: " . $e->getMessage());
     }
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $books = mysqli_fetch_all($result, MYSQLI_ASSOC);
-    mysqli_stmt_close($stmt);
+} else {
+    // MySQL approach for local
+    if ($stmt = mysqli_prepare($mysqli_connection, $mysql_query)) {
+        // Parameter binding for MySQL
+        if (!empty($search)) {
+            $search_param = "%{$search}%";
+            mysqli_stmt_bind_param($stmt, "sii", $search_param, $limit, $offset);
+        } else {
+            mysqli_stmt_bind_param($stmt, "ii", $limit, $offset);
+        }
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $books = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
+    }
 }
 ?>
 <!DOCTYPE html>

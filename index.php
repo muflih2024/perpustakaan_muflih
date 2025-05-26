@@ -54,7 +54,7 @@ if ($is_vercel) { // Menggunakan $is_vercel yang sudah di-set di config/koneksi.
 
                     <div class="mt-4">
                         <?php if ($pdo_connection): // Hanya tampilkan link dashboard jika koneksi berhasil ?>
-                            <a href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>dashboard.php" class="btn btn-primary">Masuk ke Dashboard</a>
+                            <a href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>auth/login.php" class="btn btn-primary">Masuk ke Dashboard</a>
                         <?php endif; ?>
                         <a href="https://github.com/muflih2024/perpustakaan_muflih" target="_blank" class="btn btn-secondary">Source Code</a> 
                         <!-- Pastikan 'muflih2024' adalah username GitHub Anda yang benar -->

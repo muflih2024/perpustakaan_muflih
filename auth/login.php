@@ -1,5 +1,13 @@
 <?php
-require_once '../config/koneksi.php'; // Adjusted path to koneksi.php
+// auth/login.php
+
+// Sertakan file koneksi. Ini akan mendefinisikan $is_vercel, 
+// $pdo_connection (jika di Vercel & sukses), $mysqli_connection (jika lokal & sukses), 
+// dan BASE_URL.
+require_once '../config/koneksi.php'; // Path disesuaikan karena login.php ada di dalam auth/
+
+// Pastikan variabel dari koneksi.php tersedia.
+global $pdo_connection, $mysqli_connection, $is_vercel;
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -17,113 +25,154 @@ if (isset($_GET['error'])) {
     $error = htmlspecialchars($_GET['error']);
 }
 
-// Handle Vercel environment login
-if (is_vercel_env() && $_SERVER['REQUEST_METHOD'] == 'POST') {
-    // On Vercel, create a demo session
-    $_SESSION['user_id'] = 1;
-    $_SESSION['username'] = 'demo_user';
-    $_SESSION['email'] = 'demo@example.com';
-    $_SESSION['role'] = 'admin';
-    
-    // Redirect to dashboard
-    header("Location: " . BASE_URL . "dashboard.php");
-    exit();
-} elseif ($_SERVER['REQUEST_METHOD'] == 'POST' && !is_vercel_env()) {
-    // Regular login process for local environment
-    $username = trim($_POST['username']);
-    $password = trim($_POST['password']);
-
-    if (empty($username) || empty($password)) {
-        $error = "Username/Email dan password wajib diisi.";
-    } else {
-        // Check if the input is an email by looking for @ symbol
-        $is_email = strpos($username, '@') !== false;
-        
-        // Prepare the appropriate SQL query based on input type
-        if ($is_email) {
-            $sql = "SELECT id, username, email, password, role FROM users WHERE email = ?";
-        } else {
-            $sql = "SELECT id, username, email, password, role FROM users WHERE username = ?";
-        }
-        
-        $stmt = null;
-        $password_verified = false;
-
-        if ($stmt = mysqli_prepare($koneksi, $sql)) {
-            mysqli_stmt_bind_param($stmt, "s", $param_username);
-            $param_username = $username;
-
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_store_result($stmt);
-
-                if (mysqli_stmt_num_rows($stmt) == 1) {
-                    mysqli_stmt_bind_result($stmt, $id, $username_db, $email_db, $db_password, $role);
-                    if (mysqli_stmt_fetch($stmt)) {
-                        $is_hashed = preg_match('/^\$2[axy]\$/', $db_password);
-
-                        if ($is_hashed) {
-                            if (password_verify($password, $db_password)) {
-                                $password_verified = true;
-                            }
-                        } else {
-                            if ($password === $db_password) {
-                                $password_verified = true;
-                                $new_hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                                $sql_update_hash = "UPDATE users SET password = ? WHERE id = ?";
-                                $stmt_update = null;
-                                if ($stmt_update = mysqli_prepare($koneksi, $sql_update_hash)) {
-                                    mysqli_stmt_bind_param($stmt_update, "si", $new_hashed_password, $id);
-                                    if (!mysqli_stmt_execute($stmt_update)) {
-                                        error_log("Gagal update hash password untuk user ID: " . $id . " Error: " . mysqli_stmt_error($stmt_update));
-                                    }
-                                    mysqli_stmt_close($stmt_update);
-                                } else {
-                                     error_log("Gagal prepare statement update hash password untuk user ID: " . $id . " Error: " . mysqli_error($koneksi));
-                                }
-                            }
-                        }
-
-                        if ($password_verified) {
-                            session_regenerate_id(true);
-                            $_SESSION['user_id'] = $id;
-                            $_SESSION['username'] = $username_db;
-                            $_SESSION['role'] = $role;
-                            $_SESSION['loggedin'] = true;
-
-                            mysqli_stmt_close($stmt);
-                            mysqli_close($koneksi);
-                            header("Location: " . BASE_URL . "dashboard.php");
-                            exit();
-                        } else {
-                            $error = "Password yang Anda masukkan salah.";
-                        }
-                    }                } else {
-                    $error = $is_email ? "Email tidak ditemukan." : "Username tidak ditemukan.";
-                }
-            } else {
-                $error = "Oops! Terjadi kesalahan saat eksekusi query. Silakan coba lagi nanti.";
-            }
-            if ($stmt) {
-                 mysqli_stmt_close($stmt);
-            }
-        } else {
-             $error = "Oops! Terjadi kesalahan database saat persiapan statement. Silakan coba lagi nanti.";
-        }
-        
-        if (!$password_verified) { 
-             mysqli_close($koneksi); 
-        }
-    }
-}
-
-if (isset($_GET['error'])) {
-    $error = htmlspecialchars($_GET['error']);
-}
-
 // Check for Google login error
 if (isset($_SESSION['google_login_error'])) {
     $error = $_SESSION['google_login_error'];
     unset($_SESSION['google_login_error']);
+}
+
+
+// --- LOGIKA LOGIN BERDASARKAN LINGKUNGAN ---
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username_input = trim($_POST['username']); // Gunakan nama variabel yang berbeda untuk input
+    $password_input = trim($_POST['password']); // Gunakan nama variabel yang berbeda untuk input
+
+    if (empty($username_input) || empty($password_input)) {
+        $error = "Username/Email dan password wajib diisi.";
+    } else {
+        $is_email = strpos($username_input, '@') !== false;
+
+        if ($is_vercel) {
+            // --- LINGKUNGAN VERCEL (GUNAKAN PDO DAN SUPABASE) ---
+            error_log("[LOGIN_VERCEL] Memulai proses login Vercel untuk: " . $username_input);
+            if (!$pdo_connection) {
+                $error = "Koneksi ke database Supabase gagal. Silakan coba lagi nanti atau hubungi administrator.";
+                error_log("[LOGIN_VERCEL] Gagal: \$pdo_connection adalah null.");
+            } else {
+                if ($is_email) {
+                    $sql = "SELECT id, username, email, password, role FROM users WHERE email = :credential";
+                } else {
+                    $sql = "SELECT id, username, email, password, role FROM users WHERE username = :credential";
+                }
+                
+                try {
+                    $stmt = $pdo_connection->prepare($sql);
+                    $stmt->bindParam(':credential', $username_input);
+                    $stmt->execute();
+                    
+                    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if ($user) {
+                        // Verifikasi password
+                        // Asumsi password di Supabase (PostgreSQL) di-hash dengan password_hash() PHP
+                        if (password_verify($password_input, $user['password'])) {
+                            session_regenerate_id(true);
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['username'] = $user['username'];
+                            // $_SESSION['email'] = $user['email']; // Simpan email jika perlu
+                            $_SESSION['role'] = $user['role'];
+                            // $_SESSION['loggedin'] = true; // Opsional
+
+                            error_log("[LOGIN_VERCEL] Login berhasil untuk user: " . $user['username']);
+                            header("Location: " . BASE_URL . "dashboard.php");
+                            exit();
+                        } else {
+                            $error = "Password yang Anda masukkan salah.";
+                            error_log("[LOGIN_VERCEL] Gagal: Password salah untuk " . $username_input);
+                        }
+                    } else {
+                        $error = $is_email ? "Email tidak ditemukan." : "Username tidak ditemukan.";
+                        error_log("[LOGIN_VERCEL] Gagal: User tidak ditemukan - " . $username_input);
+                    }
+                } catch (PDOException $e) {
+                    $error = "Oops! Terjadi kesalahan database. Silakan coba lagi nanti.";
+                    error_log("[LOGIN_VERCEL] PDOException: " . $e->getMessage());
+                }
+            }
+        } else {
+            // --- LINGKUNGAN LOKAL (GUNAKAN MYSQLI) ---
+            error_log("[LOGIN_LOKAL] Memulai proses login lokal untuk: " . $username_input);
+            if (!$mysqli_connection) {
+                 $error = "Koneksi ke database MySQL lokal gagal. Periksa konfigurasi.";
+                 error_log("[LOGIN_LOKAL] Gagal: \$mysqli_connection adalah null.");
+            } else {
+                if ($is_email) {
+                    $sql = "SELECT id, username, email, password, role FROM users WHERE email = ?";
+                } else {
+                    $sql = "SELECT id, username, email, password, role FROM users WHERE username = ?";
+                }
+                
+                $stmt_mysqli = null; // Gunakan nama variabel berbeda untuk statement mysqli
+                $password_verified = false;
+
+                if ($stmt_mysqli = mysqli_prepare($mysqli_connection, $sql)) {
+                    mysqli_stmt_bind_param($stmt_mysqli, "s", $param_username);
+                    $param_username = $username_input;
+
+                    if (mysqli_stmt_execute($stmt_mysqli)) {
+                        mysqli_stmt_store_result($stmt_mysqli);
+
+                        if (mysqli_stmt_num_rows($stmt_mysqli) == 1) {
+                            mysqli_stmt_bind_result($stmt_mysqli, $id_db, $username_db, $email_db, $hash_db, $role_db);
+                            if (mysqli_stmt_fetch($stmt_mysqli)) {
+                                // Cek apakah password di DB sudah di-hash atau plain (seperti kode Anda sebelumnya)
+                                $is_hashed_mysqli = preg_match('/^\$2[axy]\$/', $hash_db);
+
+                                if ($is_hashed_mysqli) {
+                                    if (password_verify($password_input, $hash_db)) {
+                                        $password_verified = true;
+                                    }
+                                } else {
+                                    // Jika plain text, verifikasi dan update ke hash (seperti kode Anda)
+                                    if ($password_input === $hash_db) {
+                                        $password_verified = true;
+                                        // Logika update hash Anda bisa ditaruh di sini
+                                        $new_hashed_password = password_hash($password_input, PASSWORD_DEFAULT);
+                                        $sql_update_hash = "UPDATE users SET password = ? WHERE id = ?";
+                                        if ($stmt_update_mysqli = mysqli_prepare($mysqli_connection, $sql_update_hash)) {
+                                            mysqli_stmt_bind_param($stmt_update_mysqli, "si", $new_hashed_password, $id_db);
+                                            mysqli_stmt_execute($stmt_update_mysqli);
+                                            mysqli_stmt_close($stmt_update_mysqli);
+                                        }
+                                    }
+                                }
+
+                                if ($password_verified) {
+                                    session_regenerate_id(true);
+                                    $_SESSION['user_id'] = $id_db;
+                                    $_SESSION['username'] = $username_db;
+                                    $_SESSION['role'] = $role_db;
+                                    // $_SESSION['loggedin'] = true;
+
+                                    mysqli_stmt_close($stmt_mysqli);
+                                    // mysqli_close($mysqli_connection); // JANGAN close koneksi global di sini
+                                    error_log("[LOGIN_LOKAL] Login berhasil untuk user: " . $username_db);
+                                    header("Location: " . BASE_URL . "dashboard.php");
+                                    exit();
+                                } else {
+                                    $error = "Password yang Anda masukkan salah.";
+                                    error_log("[LOGIN_LOKAL] Gagal: Password salah untuk " . $username_input);
+                                }
+                            }
+                        } else {
+                            $error = $is_email ? "Email tidak ditemukan." : "Username tidak ditemukan.";
+                            error_log("[LOGIN_LOKAL] Gagal: User tidak ditemukan - " . $username_input);
+                        }
+                    } else {
+                        $error = "Oops! Terjadi kesalahan saat eksekusi query. Silakan coba lagi nanti.";
+                        error_log("[LOGIN_LOKAL] mysqli_stmt_execute error: " . mysqli_stmt_error($stmt_mysqli));
+                    }
+                    if ($stmt_mysqli) {
+                         mysqli_stmt_close($stmt_mysqli);
+                    }
+                } else {
+                     $error = "Oops! Terjadi kesalahan database saat persiapan statement. Silakan coba lagi nanti.";
+                     error_log("[LOGIN_LOKAL] mysqli_prepare error: " . mysqli_error($mysqli_connection));
+                }
+                // if (!$password_verified && $mysqli_connection) { mysqli_close($mysqli_connection); } // Jangan close koneksi global
+            }
+        }
+    }
 }
 ?>
 
@@ -131,663 +180,112 @@ if (isset($_SESSION['google_login_error'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Login - Perpustakaan Muflih</title>
-    <link href="../assets/bootstrap.css/css/theme.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk - Perpustakaan Muflih</title>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>assets/bootstrap.css/css/bootstrap.min.css">
     <style>
-        /* Background and day-night elements */
-        .background-layer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
-            z-index: -1;
-            transition: background 4s ease;
+        .login-container {
+            max-width: 450px;
+            margin: 0 auto;
+            margin-top: 100px;
         }
-
-        .morning {
-            background: linear-gradient(to bottom, #FFC1A6, #FFF3D9, #87CEEB);
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-
-        .day {
-            background: linear-gradient(to bottom, #87CEEB, #4682B4);
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: #4e73df;
+            color: white;
+            text-align: center;
+            padding: 20px;
         }
-
-        .evening {
-            background: linear-gradient(to bottom, #FF7F50, #FFD700, #4682B4);
-        }
-
-        .night {
-            background: linear-gradient(to bottom, #000428, #004e92);
-        }
-
-        /* Sun and moon */
-        .sun {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            z-index: 1;
-            transition: all 4s ease, box-shadow 4s ease, background 4s ease, transform 4s ease;
-        }
-        
-        .morning .sun {
-            top: 5%;
-            left: 10%;
-            background: radial-gradient(circle, #FFE4B5, #FF8C00);
-            box-shadow: 0 0 40px rgba(255, 140, 0, 0.7);
-            transform: scale(0.9);
-        }
-        
-        .day .sun {
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%) scale(1);
-            background: radial-gradient(circle, #FFD700, #FFA500);
-            box-shadow: 0 0 50px rgba(255, 223, 0, 0.8);
-        }
-        
-        .evening .sun {
-            top: 15%;
-            left: 80%;
-            background: radial-gradient(circle, #FF4500, #FF8C00);
-            box-shadow: 0 0 60px rgba(255, 69, 0, 0.9);
-            transform: scale(1.1);
-        }
-
-        .moon {
-            position: absolute;
-            top: 10%;
-            left: 50%;
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, #FFF, #BBB);
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
-            z-index: 1;
-            transition: all 4s ease, opacity 4s ease;
-            opacity: 0;
-            transform: translateX(-50%);
-        }
-
-        /* Stars */
-        .star {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background: white;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-            animation: twinkle 2s infinite;
-            transition: opacity 3s ease;
-            opacity: 0; /* Initially invisible */
-            z-index: 0;
-        }
-        
-        /* Only show stars at night with a nice fade-in effect */
-        .night .star {
-            opacity: 0; /* Start with opacity 0 even in night mode */
-            animation: twinkle 3s infinite, fadeInStar 3s forwards; /* Add fade in animation */
-        }
-        
-        @keyframes fadeInStar {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.8; box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
-            50% { opacity: 0.4; box-shadow: 0 0 5px rgba(255, 255, 255, 0.4); }
-        }
-
-        /* Clouds */
-        .cloud {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.7);
-            opacity: 0.8;
-            animation: moveCloud 60s linear infinite;
-            transition: background 3s ease, box-shadow 3s ease, opacity 3s ease;
-        }
-
-        .night .cloud {
-            background: rgba(200, 200, 220, 0.4);
-            box-shadow: 0 0 15px 8px rgba(200, 200, 255, 0.3);
-            opacity: 0.5;
-        }
-
-        .cloud.c1 { width: 150px; height: 50px; top: 10%; left: -100px; animation-duration: 50s; }
-        .cloud.c2 { width: 200px; height: 70px; top: 25%; left: -150px; animation-duration: 70s; animation-delay: -10s; }
-        .cloud.c3 { width: 120px; height: 40px; top: 50%; left: -80px; animation-duration: 45s; animation-delay: -20s; }
-        .cloud.c4 { width: 180px; height: 60px; top: 70%; left: -120px; animation-duration: 65s; animation-delay: -30s; }
-        .cloud.c5 { width: 100px; height: 35px; top: 85%; left: -50px; animation-duration: 40s; animation-delay: -5s; }
-
-        .cloud::before, .cloud::after {
-            content: '';
-            position: absolute;
-            background: inherit;
-            border-radius: 50%;
-            box-shadow: inherit;
-            opacity: inherit;
-        }
-        .cloud::before {
-            width: 60%; height: 120%;
-            top: -40%; left: 10%;
-        }
-        .cloud::after {
-            width: 70%; height: 100%;
-            top: -20%; right: 5%;
-        }
-        
-        @keyframes moveCloud {
-            from { transform: translateX(0); }
-            to { transform: translateX(calc(100vw + 300px)); }
-        }
-
-        /* Book character */
-        .book-character {
-            position: absolute;
-            bottom: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 150px;
-            height: 180px;
-            perspective: 1000px;
-            z-index: 10;
-            transition: transform 0.2s ease-out;
-        }
-
-        .book-body {
+        .btn-primary {
+            background-color: #4e73df;
+            border-color: #4e73df;
             width: 100%;
-            height: 100%;
-            background-color: #a0522d;
-            border: 3px solid #5c300a;
-            border-radius: 5px 10px 10px 5px;
-            position: relative;
-            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease;
+            padding: 10px;
         }
-
-        .book-cover-line {
-            position: absolute;
-            left: 5px;
-            top: 0;
-            bottom: 0;
-            width: 15px;
-            background-color: #5c300a;
-            border-radius: 5px 0 0 5px;
+        .btn-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2e59d9;
         }
-        
-        .book-title {
-            position: absolute;
-            top: 20px;
-            left: 30px;
-            right: 10px;
-            height: 20px;
-            background-color: #e0cfa8;
-            border: 1px solid #5c300a;
-            border-radius: 3px;
+        .btn-google {
+            background-color: #ea4335;
+            border-color: #ea4335;
+            color: white;
+            width: 100%;
+            padding: 10px;
         }
-        
-        .book-title-2 {
-            position: absolute;
-            top: 50px;
-            left: 30px;
-            right: 25px;
-            height: 10px;
-            background-color: #e0cfa8;
-            border: 1px solid #5c300a;
-            border-radius: 3px;
+        .btn-google:hover {
+            background-color: #d62516;
+            border-color: #d62516;
+            color: white;
         }
-
-        /* Book eyes */
-        .book-eyes {
-            position: absolute;
-            top: 45%;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 25px;
-            z-index: 1;
+        .register-link {
+            text-align: center;
+            margin-top: 15px;
         }
-
-        .eye {
-            width: 25px;
-            height: 30px;
-            background-color: white;
-            border-radius: 50%;
-            border: 2px solid #5c300a;
-            position: relative;
-            overflow: hidden;
-            transition: height 0.1s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-        }
-
-        .pupil {
-            width: 12px;
-            height: 12px;
-            background-color: #333;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transition: transform 0.1s linear;
-        }
-
-        .eye.blink {
-            height: 3px;
-            transform: scaleY(0.1);
-        }
-
-        /* Welcome text styling for different time phases */
-        .morning .welcome-text h1 {
-            color: #8B4513; /* Brown color for morning text */
-            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.6);
-        }
-        
-        .morning .welcome-text p {
-            color: #5D4037; /* Darker brown for morning sub-text */
-        }
-        
-        .day .welcome-text h1 {
-            color: #FFFFFF; /* White for day text */
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-        }
-        
-        .day .welcome-text p {
-            color: #F0F0F0; /* Light white for day sub-text */
-        }
-        
-        .evening .welcome-text h1 {
-            color: #FFF3E0; /* Light orange for evening text */
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-        }
-        
-        .evening .welcome-text p {
-            color: #FFE0B2; /* Lighter orange for evening sub-text */
-        }
-        
-        .night .welcome-text h1 {
-            color: #E0F7FA; /* Light blue for night text */
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-        }
-        
-        .night .welcome-text p {
-            color: #B2EBF2; /* Lighter blue for night sub-text */
+        .logo {
+            max-width: 80px;
+            margin: 0 auto 10px auto;
+            display: block;
         }
     </style>
 </head>
-<body>
-    <div class="background-layer">
-        <div class="sun" id="sun"></div>
-        <div class="moon" id="moon"></div>
-        <div class="cloud c1"></div>
-        <div class="cloud c2"></div>
-        <div class="cloud c3"></div>
-        <div class="cloud c4"></div>
-        <div class="cloud c5"></div>
-        <div class="star" style="top: 15%; left: 25%;"></div>
-        <div class="star" style="top: 20%; left: 40%;"></div>
-        <div class="star" style="top: 12%; left: 60%;"></div>
-        <div class="star" style="top: 25%; left: 75%;"></div>
-        <div class="star" style="top: 35%; left: 20%;"></div>
-        <div class="star" style="top: 40%; left: 50%;"></div>
-        <div class="star" style="top: 45%; left: 80%;"></div>
-        <div class="star" style="top: 55%; left: 30%;"></div>
-        <div class="star" style="top: 60%; left: 70%;"></div>
-        <div class="star" style="top: 70%; left: 15%;"></div>
-        <div class="star" style="top: 75%; left: 45%;"></div>
-        <div class="star" style="top: 80%; left: 65%;"></div>
+<body class="bg-light">
+    <div class="container">
+        <div class="login-container">
+            <div class="card">
+                <div class="card-header">
+                    <?php if (file_exists(__DIR__ . '/../assets/logosmk.png')): ?>
+                        <img src="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>assets/logosmk.png" alt="Logo Perpustakaan" class="logo">
+                    <?php endif; ?>
+                    <h4>Masuk ke Perpustakaan Muflih</h4>
+                </div>
+                <div class="card-body">
+                    <?php if(!empty($error)): ?>
+                        <div class="alert alert-danger"><?php echo $error; ?></div>
+                    <?php endif; ?>
+                    
+                    <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'], ENT_QUOTES, 'UTF-8'); ?>" method="post" class="mt-3">
+                        <div class="form-group mb-3">
+                            <label for="username">Username atau Email</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <a href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>forgetpw/" class="text-decoration-none">Lupa password?</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary mb-3">Masuk</button>
+                    </form>
+                    
+                    <?php
+                    // Check if Google login is configured
+                    $google_config_file = __DIR__ . '/../config/google_config.php';
+                    $google_login_enabled = file_exists($google_config_file);
+                    
+                    if ($google_login_enabled):
+                    ?>
+                    <div class="text-center my-3">
+                        <p>ATAU</p>
+                    </div>
+                    <a href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>auth/google_login.php" class="btn btn-google">
+                        <i class="fa fa-google"></i> Masuk dengan Google
+                    </a>
+                    <?php endif; ?>
+                    
+                    <div class="register-link">
+                        <p>Belum punya akun? <a href="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>auth/register.php" class="text-decoration-none">Daftar</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="container-fluid vh-100 p-0 d-flex align-items-center justify-content-center">
-        <div class="row h-100 g-0 w-100">
-            <div class="col-md-6 text-white d-flex flex-column justify-content-center p-4 position-relative overflow-hidden">
-                <div class="position-relative welcome-text" style="z-index: 5">
-                    <h1 class="display-4 fw-bold mb-3" id="welcomeHeading">Welcome to Perpustakaan Muflih</h1>
-                    <p class="lead mb-0" id="welcomeMessage">Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.</p>
-                </div>
-
-                <div class="book-character" id="bookCharacter" style="z-index: 10;">
-                    <div class="book-body">
-                        <div class="book-cover-line"></div>
-                        <div class="book-title"></div>
-                        <div class="book-title-2"></div>
-                        <div class="book-eyes">
-                            <div class="eye">
-                                <div class="pupil" id="leftPupil"></div>
-                            </div>
-                            <div class="eye">
-                                <div class="pupil" id="rightPupil"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 d-flex align-items-center justify-content-center p-4 p-md-5">
-                <div class="w-75">
-                    <div class="card shadow-sm rounded-3 border-0">
-                        <div class="card-body p-4 p-md-5">                            <div class="text-center mb-4">
-                                <img class="mb-3" src="../assets/logosmk.png" alt="Logo SMK" width="80" height="auto">
-                                <h2 class="fw-semibold text-primary mb-4">USER LOGIN</h2>
-                            </div>
-
-                            <?php if (!empty($error)): ?>
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <?php echo $error; ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <?php if (isset($_SESSION['error'])): ?>
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            <?php endif; ?><form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-                                <div class="mb-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0 text-secondary">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                                                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
-                                            </svg>
-                                        </span>
-                                        <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="Username atau Email" required autofocus>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0 text-secondary">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock" viewBox="0 0 16 16">
-                                                <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM5 8h6a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
-                                            </svg>
-                                        </span>
-                                        <input type="password" class="form-control border-start-0 border-end-0" id="password" name="password" placeholder="Password" required>
-                                        <span class="input-group-text bg-white border-start-0" id="togglePassword" style="cursor: pointer;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
-                                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                                            </svg>
-                                        </span>
-                                    </div>
-                                </div>                               <div class="d-grid gap-2">
-                                    <button class="btn btn-primary text-white py-2 rounded-pill fw-semibold" type="submit">LOGIN</button>                                </div>                                <div class="my-3 text-center">
-                                    <small class="text-muted">- Atau login dengan -</small>
-                                </div>
-                                  <div class="d-grid gap-2">
-                                    <?php if (file_exists('../vendor/autoload.php')): ?>
-                                    <a href="google_login.php" class="btn btn-outline-secondary py-2 rounded-pill">
-                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKDJ2Ng40CF4yr4q89wueOVHuQGwEWqq3oMg&s" alt="Google logo" style="height: 18px; margin-right: 8px;">
-                                        Login dengan Google
-                                    </a>
-                                    <?php else: ?>
-                                    <button class="btn btn-outline-secondary py-2 rounded-pill" disabled>
-                                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKDJ2Ng40CF4yr4q89wueOVHuQGwEWqq3oMg&s" alt="Google logo" style="height: 18px; margin-right: 8px;">
-                                        Login dengan Google (Tidak tersedia)
-                                    </button>
-                                    <?php endif; ?>
-                                </div>                                <div class="text-center mt-3">
-                                    <a href="../forgetpw/index.php">Lupa password?</a>
-                                </div>
-                                <div class="text-center mt-2">
-                                    Belum punya akun? <a href="register.php">Daftar di sini</a>
-                                </div>
-
-                                <p class="mt-4 mb-0 text-white-50 text-center small">&copy; Perpustakaan Muflih <?php echo date("Y"); ?></p>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>    </div>
-
-    <script src="../assets/bootstrap.js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const backgroundLayer = document.querySelector('.background-layer');
-            const sun = document.getElementById('sun');
-            const moon = document.getElementById('moon');
-            const stars = document.querySelectorAll('.star');
-            const clouds = document.querySelectorAll('.cloud');
-            
-            // Welcome text elements
-            const welcomeHeading = document.getElementById('welcomeHeading');
-            const welcomeMessage = document.getElementById('welcomeMessage');
-            
-            // Time cycle phases
-            const timePhases = ['morning', 'day', 'evening', 'night'];
-            let currentPhase = 0;
-            
-            // Set initial state
-            updateTimePhase(timePhases[currentPhase]);
-            
-            // Time phase update function
-            function updateTimePhase(phase) {
-                // Remove all possible phase classes first
-                backgroundLayer.classList.remove('morning', 'day', 'evening', 'night');
-                
-                // Add the current phase class
-                backgroundLayer.classList.add(phase);
-                
-                // Update welcome text based on time phase
-                updateWelcomeText(phase);
-                
-                // Update elements based on current phase
-                switch(phase) {
-                    case 'morning':
-                        // Morning sunrise
-                        sun.style.display = 'block';
-                        moon.style.opacity = '0';
-                        
-                        // Position and style sun for morning
-                        sun.style.opacity = '1';
-                        updateCloudAppearance('morning');
-                        hideStars();
-                        break;
-                        
-                    case 'day':
-                        // Full daylight
-                        sun.style.display = 'block';
-                        moon.style.opacity = '0';
-                        
-                        // Position and style sun for day
-                        sun.style.opacity = '1';
-                        updateCloudAppearance('day');
-                        hideStars();
-                        break;
-                        
-                    case 'evening':
-                        // Sunset
-                        sun.style.display = 'block';
-                        moon.style.opacity = '0';
-                        
-                        // Position and style sun for evening
-                        sun.style.opacity = '1';
-                        updateCloudAppearance('evening');
-                        hideStars();
-                        break;
-                        
-                    case 'night':
-                        // Night time
-                        sun.style.opacity = '0';
-                        moon.style.opacity = '1';
-                        moon.style.display = 'block';
-                        
-                        // Show stars at night with delay
-                        setTimeout(showStars, 800);
-                        updateCloudAppearance('night');
-                        break;
-                }
-            }
-            
-            // Update welcome text based on time phase
-            function updateWelcomeText(phase) {
-                switch(phase) {
-                    case 'morning':
-                        welcomeHeading.textContent = "Selamat Pagi! Welcome to Perpustakaan Muflih";
-                        welcomeMessage.textContent = "Mulai hari Anda dengan membaca buku yang menginspirasi. Mari kelola perpustakaan dengan efisien.";
-                        break;
-                    case 'day':
-                        welcomeHeading.textContent = "Selamat Siang! Welcome to Perpustakaan Muflih";
-                        welcomeMessage.textContent = "Sistem informasi perpustakaan untuk pengelolaan buku dan peminjaman yang efisien dan mudah digunakan.";
-                        break;
-                    case 'evening':
-                        welcomeHeading.textContent = "Selamat Sore! Welcome to Perpustakaan Muflih";
-                        welcomeMessage.textContent = "Nikmati sore Anda dengan membaca buku favorit. Sistem perpustakaan yang selalu siap melayani.";
-                        break;
-                    case 'night':
-                        welcomeHeading.textContent = "Selamat Malam! Welcome to Perpustakaan Muflih";
-                        welcomeMessage.textContent = "Perpustakaan tetap ada untuk Anda di malam hari. Mari kelola dan pinjam buku dengan mudah.";
-                        break;
-                }
-            }
-            
-            // Helper functions
-            function showStars() {
-                stars.forEach((star, index) => {
-                    // Add random delays for a more natural twinkling effect
-                    const randomDelay = 100 + Math.random() * 1000 + index * 50;
-                    setTimeout(() => {
-                        const initialOpacity = 0.5 + Math.random() * 0.5;
-                        star.style.opacity = initialOpacity.toString();
-                    }, randomDelay);
-                });
-            }
-            
-            function hideStars() {
-                stars.forEach(star => {
-                    star.style.opacity = '0';
-                });
-            }
-            
-            function updateCloudAppearance(phase) {
-                clouds.forEach(cloud => {
-                    cloud.classList.remove('morning-cloud', 'day-cloud', 'evening-cloud', 'night-cloud');
-                    if (phase !== 'day') {
-                        cloud.classList.add(`${phase}-cloud`);
-                    }
-                });
-            }
-            
-            // Cycle through time phases
-            function cycleTimePhase() {
-                currentPhase = (currentPhase + 1) % timePhases.length;
-                updateTimePhase(timePhases[currentPhase]);
-            }
-            
-            // Change time phase every 6 seconds (reduced from 12 seconds)
-            setInterval(cycleTimePhase, 6000);
-            
-            // Book character eye movement logic
-            const leftPupil = document.getElementById('leftPupil');
-            const rightPupil = document.getElementById('rightPupil');
-            const bookCharacter = document.getElementById('bookCharacter');
-            const eyes = document.querySelectorAll('.eye');
-
-            const leftPanel = document.querySelector('.col-md-6.text-white');
-            let panelRect = leftPanel.getBoundingClientRect();
-
-            window.addEventListener('resize', () => {
-                panelRect = leftPanel.getBoundingClientRect();
-            });
-
-            leftPanel.addEventListener('mousemove', function(event) {
-                const mouseX = event.clientX - panelRect.left;
-                const mouseY = event.clientY - panelRect.top;
-
-                const normX = (mouseX / panelRect.width) * 2 - 1;
-                const normY = (mouseY / panelRect.height) * 2 - 1;
-
-                const maxPupilMove = 5;
-                const pupilX = normX * maxPupilMove;
-                const pupilY = normY * maxPupilMove;
-
-                leftPupil.style.transform = `translate(calc(-50% + ${pupilX}px), calc(-50% + ${pupilY}px))`;
-                rightPupil.style.transform = `translate(calc(-50% + ${pupilX}px), calc(-50% + ${pupilY}px))`;
-
-                const maxTilt = 8;
-                const bookTilt = normX * maxTilt * -1;
-
-                const maxVerticalMove = 5;
-                const bookMoveY = normY * maxVerticalMove * -0.5;
-
-                bookCharacter.style.transform = `translateX(-50%) translateY(${bookMoveY}px) rotateY(${bookTilt}deg)`;
-            });
-
-            leftPanel.addEventListener('mouseleave', () => {
-                 leftPupil.style.transform = 'translate(-50%, -50%)';
-                 rightPupil.style.transform = 'translate(-50%, -50%)';
-                 bookCharacter.style.transform = 'translateX(-50%) translateY(0px) rotateY(0deg)';
-            });
-
-            function blinkEyes() {
-                const blinkInterval = Math.random() * 5000 + 2000;
-
-                setTimeout(() => {
-                    eyes.forEach(eye => eye.classList.add('blink'));
-
-                    setTimeout(() => {
-                        eyes.forEach(eye => eye.classList.remove('blink'));
-                        blinkEyes();
-                    }, 150);
-                }, blinkInterval);
-            }
-
-            setTimeout(blinkEyes, 1000);
-
-            bookCharacter.style.animation = 'breathing 5s ease-in-out infinite';
-
-            if (document.styleSheets.length > 0) {
-                const styleSheet = document.styleSheets[0];
-                try {
-                    styleSheet.insertRule(`
-                        @keyframes breathing {
-                            0%, 100% { transform: translateX(-50%) scale(1); }
-                            50% { transform: translateX(-50%) scale(1.03); }
-                        }
-                    `, styleSheet.cssRules.length);
-                } catch (e) {
-                    console.error("Could not insert CSS rule for breathing animation:", e);
-                }
-            } else {
-                 console.warn("No stylesheets found to insert breathing animation rule.");
-            }
-
-             const inputs = document.querySelectorAll('#username, #password');
-             inputs.forEach(input => {
-                 input.addEventListener('focus', () => {
-                     eyes.forEach(eye => eye.style.transform = 'scale(1.1)');
-                 });
-                 input.addEventListener('blur', () => {
-                     eyes.forEach(eye => eye.style.transform = 'scale(1)');
-                 });
-             });
-        });
-
-        // Password toggle visibility
-        const togglePassword = document.querySelector('#togglePassword');
-        const password = document.querySelector('#password');
-        const eyeIcon = togglePassword.querySelector('svg');
-
-        togglePassword.addEventListener('click', function (e) {
-            // toggle the type attribute
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            
-            // toggle the eye / eye slash icon
-            if (type === 'password') {
-                eyeIcon.innerHTML = `<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>`; // Eye icon SVG path
-                eyeIcon.setAttribute('viewBox', '0 0 16 16');
-            } else {
-                eyeIcon.innerHTML = `<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.94 5.94 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>`; // Eye slash icon SVG path
-                eyeIcon.setAttribute('viewBox', '0 0 16 16');
-            }
-        });
-    </script>
+    <script src="<?php echo htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8'); ?>assets/bootstrap.js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

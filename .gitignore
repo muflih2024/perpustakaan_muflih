@@ -59,4 +59,5 @@ Thumbs.db
 /sql/backup/
 /sql/data/
 *.sql
-!schema.sql
+!sql/schema.sql
+!sql/.gitkeep

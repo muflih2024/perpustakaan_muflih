@@ -6,8 +6,15 @@ if (file_exists(__DIR__ . '/env_loader.php')) {
     require_once __DIR__ . '/env_loader.php';
 }
 
+// Define is_vercel_env function first since it's used throughout the file
+if (!function_exists('is_vercel_env')) {
+    function is_vercel_env() {
+        return getenv('VERCEL') === '1';
+    }
+}
+
 // Periksa apakah berjalan di Vercel
-$is_vercel = getenv('VERCEL') === '1';
+$is_vercel = is_vercel_env();
 
 // Inisialisasi variabel koneksi ke null
 $pdo_connection = null;  // Untuk Supabase/PostgreSQL di Vercel
@@ -110,13 +117,6 @@ if (!function_exists('check_login')) {
 if (!function_exists('sanitize')) {
     function sanitize($data) {
         return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-// Restore is_vercel_env function since it's used in several places
-if (!function_exists('is_vercel_env')) {
-    function is_vercel_env() {
-        return getenv('VERCEL') === '1';
     }
 }
 

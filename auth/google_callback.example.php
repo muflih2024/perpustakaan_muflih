@@ -2,6 +2,13 @@
 // File: google_callback.example.php
 // Example template for Google callback process
 
+// If running in Vercel, set secure cookie settings before starting a session
+if (getenv('VERCEL') === '1' && session_status() == PHP_SESSION_NONE) {
+    ini_set('session.cookie_secure', 'On');
+    ini_set('session.cookie_httponly', 'On');
+    ini_set('session.cookie_samesite', 'None');
+}
+
 // Include file konfigurasi
 require_once '../config/env_loader.php';
 require_once '../config/koneksi.php';

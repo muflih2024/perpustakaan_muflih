@@ -1,4 +1,11 @@
 <?php
+// Set secure session parameters if running in Vercel
+if (getenv('VERCEL') === '1' && session_status() == PHP_SESSION_NONE) {
+    ini_set('session.cookie_secure', 'On');
+    ini_set('session.cookie_httponly', 'On');
+    ini_set('session.cookie_samesite', 'None');
+}
+
 require_once 'config/koneksi.php';
 
 // Pada Vercel, kita buat konten demo

@@ -87,7 +87,10 @@ if ($is_vercel) {
 
 // --- Fungsi Anda yang lain ---
 
-if (session_status() == PHP_SESSION_NONE) {
+// Only start session if none is active and we're not in a context where ini_set would be used
+// We'll leave session initialization to specific pages when needed
+// This helps avoid "headers already sent" and ini_set errors on Vercel
+if (session_status() == PHP_SESSION_NONE && !is_vercel_env()) {
     session_start();
 }
 
@@ -110,30 +113,28 @@ if (!function_exists('sanitize')) {
     }
 }
 
-/*
-// Fungsi is_vercel_env dan vercel_message mungkin perlu diubah atau dihapus
-// karena sekarang kita mencoba terhubung ke database di Vercel.
-// Pesan dari vercel_message tidak lagi akurat.
-
+// Restore is_vercel_env function since it's used in several places
 if (!function_exists('is_vercel_env')) {
     function is_vercel_env() {
         return getenv('VERCEL') === '1';
     }
 }
 
+// Modified vercel_message function to be accurate with Supabase connection
 if (!function_exists('vercel_message')) {
     function vercel_message($feature = 'Database') {
         if (is_vercel_env()) {
-            // Pesan ini menyesatkan jika koneksi Supabase berhasil.
+            global $pdo_connection;
+            $connection_status = $pdo_connection ? "aktif" : "tidak tersedia";
+            
             echo "<div style='padding: 20px; background-color: #f0f8ff; color: #31708f; border: 1px solid #bce8f1; border-radius: 5px; margin: 20px;'>";
             echo "<h3>ℹ️ Info {$feature} di Vercel</h3>";
-            echo "<p>Aplikasi ini berjalan di Vercel dan akan menggunakan Supabase (PostgreSQL) untuk fitur {$feature}.</p>";
+            echo "<p>Aplikasi ini berjalan di Vercel dengan koneksi Supabase (PostgreSQL) {$connection_status}.</p>";
             echo "<p>Untuk pengembangan lokal dengan MySQL, jalankan aplikasi dengan XAMPP.</p>";
             echo "</div>";
         }
     }
 }
-*/
 
 // --- CONTOH PENGGUNAAN KONEKSI DI FILE LAIN ---
 // Anda perlu mendeklarasikan variabel global dan memeriksa lingkungan

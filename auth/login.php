@@ -1,4 +1,11 @@
 <?php
+// Set any session parameters before starting the session or requiring files that might start it
+if (getenv('VERCEL') === '1' && session_status() == PHP_SESSION_NONE) {
+    ini_set('session.cookie_secure', 'On');
+    ini_set('session.cookie_httponly', 'On');
+    ini_set('session.cookie_samesite', 'None');
+}
+
 require_once '../config/koneksi.php'; // Adjusted path to koneksi.php
 
 if (session_status() == PHP_SESSION_NONE) {
